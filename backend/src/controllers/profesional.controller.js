@@ -75,7 +75,19 @@ const createProfesional = async (req, res) => {
     }
 };
 
+//Buscar 1 profesional por ID
+const { obtenerProfesionalPorId } = require('../services/profesional.service');
+const getProfesional = async (req, res) => {
+    try {
+        const profesional = await obtenerProfesionalPorId(req.params.id);
+        res.json(profesional);
+    } catch (error) {
+        res.status(404).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getProfesionales,
-    createProfesional
+    createProfesional,
+    getProfesional
 };

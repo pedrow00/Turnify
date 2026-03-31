@@ -3,11 +3,13 @@ const router = express.Router();
 
 const {
     getPacientes,
-    createPaciente
+    createPaciente,
+    getPaciente
 } = require('../controllers/paciente.controller');
 
 // GET
 router.get('/', getPacientes);
+router.get('/:id', getPaciente);
 
 // POST
 router.post('/', createPaciente);

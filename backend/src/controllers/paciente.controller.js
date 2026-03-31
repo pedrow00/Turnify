@@ -40,9 +40,20 @@ const createPaciente = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+//GET POR ID DE UN PACIENTE
+const { obtenerPacientePorId } = require('../services/paciente.service')
+const getPaciente = async (req, res) => {
+    try {
+        const paciente = await obtenerPacientePorId(req.params.id);
+        res.json(paciente);
+    } catch (error) {
+        res.status(404).json({ error: error.message });
+    }
+}
 
 // 👇 ESTO ES CLAVE
 module.exports = {
     getPacientes,
-    createPaciente
+    createPaciente,
+    getPaciente
 };
