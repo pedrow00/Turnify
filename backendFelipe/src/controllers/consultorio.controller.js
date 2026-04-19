@@ -4,7 +4,7 @@ const {
   crearConsultorio,
   actualizarConsultorio,
   eliminarConsultorio
-} = require('../services/consultorio.service');
+} = require('../services/consultorios.service');
 
 const getConsultorios = async (req, res) => {
   try {

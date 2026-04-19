@@ -1,14 +1,24 @@
 const express = require('express');
 const router = express.Router();
 
-const {crearTurno, getTurnos} = require('../controllers/turnos.controller');
-const { route } = require('./consultorio.routes');
+const { 
+    getTurnos, 
+    getTurno, 
+    createTurno, 
+    updateTurno, 
+    deleteTurno
+} = require('../controllers/turnos.controller');
 const { verificarRol } = require('../middlewares/auth.middleware');
 
-//GET
 router.get('/',verificarRol(['secretaria', 'socio']) ,getTurnos)
+router.get('/:id',verificarRol(['secretaria', 'socio']) , getTurno);
 
-//POST
-router.post('/',verificarRol(['secretaria', 'socio']) , crearTurno);
+router.post('/',verificarRol(['secretaria', 'socio']) , createTurno);
+
+router.put('/:id',verificarRol(['secretaria', 'socio']) , updateTurno);
+
+router.delete('/:id',verificarRol(['secretaria', 'socio']) , deleteTurno);
+
+
 
 module.exports = router;

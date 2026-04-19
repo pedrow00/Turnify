@@ -1,6 +1,6 @@
 const verificarRol = (rolesPermitidos = []) => {
   return (req, res, next) => {
-    const rol = req.headers['rol']; // o req.body.rol
+    const rol = req.headers['rol'];
 
     if (!rol) {
       return res.status(401).json({ error: 'Rol requerido' });

@@ -5,14 +5,20 @@ const { verificarRol } = require('../middlewares/auth.middleware');
 const {
     getPacientes,
     createPaciente,
-    getPaciente
+    getPaciente,
+    updatePaciente,
+    deletePaciente
 } = require('../controllers/paciente.controller');
 
 
 router.get('/',verificarRol(['secretaria', 'socio']) ,getPacientes);
-router.get('/:id', getPaciente);
+router.get('/:id', verificarRol(['secretaria', 'socio']) , getPaciente);
 
-router.post('/',verificarRol(['secretaria', 'socio']) , createPaciente);
+router.post('/',verificarRol(['secretaria']) , createPaciente);
+
+router.put('/:id',verificarRol(['secretaria']) , updatePaciente);
+
+router.delete('/:id',verificarRol(['secretaria']) , deletePaciente);
 
 
 module.exports = router;

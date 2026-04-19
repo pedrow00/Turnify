@@ -51,7 +51,7 @@ const getConsultorios = async (req, res) => {
     }
 };
 
-
+p
 // POST (crear consultorio completo)
 const createConsultorio = async (req, res) => {
     try {

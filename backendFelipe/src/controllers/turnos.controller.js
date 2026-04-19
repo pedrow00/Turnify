@@ -4,7 +4,7 @@ const {
   crearTurno,
   actualizarTurno,
   eliminarTurno
-} = require('../services/turnos.service');
+} = require('../services/turnos.services');
 
 const getTurnos = async (req, res) => {
   try {
