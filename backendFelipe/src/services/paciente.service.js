@@ -15,22 +15,23 @@ const obtenerPacientePorId = async (id) => {
 
 // POST
 const crearPaciente = async (data) => {
-  const { nombre, apellido, dni, email, telefono, fecha_nacimiento } = data;
+  const { nombre, apellido, dni, email, telefono, fecha_nacimiento, provincia_id, provincia_nombre, localidad_id, localidad_nombre } = data;
   const result = await pool.query(
-    `INSERT INTO pacientes (nombre, apellido, dni, email, telefono, fecha_nacimiento)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [nombre, apellido, dni, email, telefono, fecha_nacimiento]
+    `INSERT INTO pacientes (nombre, apellido, dni, email, telefono, fecha_nacimiento, provincia_id, provincia_nombre, localidad_id, localidad_nombre)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [nombre, apellido, dni, email, telefono, fecha_nacimiento, provincia_id, provincia_nombre, localidad_id, localidad_nombre]
   );
   return result.rows[0];
 };
 
 // PUT
 const actualizarPaciente = async (id, data) => {
-  const { nombre, apellido, dni, email, telefono, fecha_nacimiento } = data;
+  const { nombre, apellido, dni, email, telefono, fecha_nacimiento, provincia_id, provincia_nombre, localidad_id, localidad_nombre } = data;
   const result = await pool.query(
-    `UPDATE pacientes SET nombre=$1, apellido=$2, dni=$3, email=$4, telefono=$5, fecha_nacimiento=$6
-     WHERE id=$7 RETURNING *`,
-    [nombre, apellido, dni, email, telefono, fecha_nacimiento, id]
+    `UPDATE pacientes SET nombre=$1, apellido=$2, dni=$3, email=$4, telefono=$5, fecha_nacimiento=$6,
+     provincia_id=$7, provincia_nombre=$8, localidad_id=$9, localidad_nombre=$10, fecha_modificacion=CURRENT_TIMESTAMP
+     WHERE id=$11 RETURNING *`,
+    [nombre, apellido, dni, email, telefono, fecha_nacimiento, provincia_id, provincia_nombre, localidad_id, localidad_nombre, id]
   );
   if (result.rows.length === 0) throw new Error('Paciente no encontrado');
   return result.rows[0];
@@ -40,12 +41,7 @@ const actualizarPaciente = async (id, data) => {
 const eliminarPaciente = async (id) => {
   const result = await pool.query('DELETE FROM pacientes WHERE id=$1 RETURNING *', [id]);
   if (result.rows.length === 0) throw new Error('Paciente no encontrado');
+  return result.rows[0];
 };
 
-module.exports = {
-  obtenerPacientes,
-  obtenerPacientePorId,
-  crearPaciente,
-  actualizarPaciente,
-  eliminarPaciente
-};
+module.exports = { obtenerPacientes, obtenerPacientePorId, crearPaciente, actualizarPaciente, eliminarPaciente };
