@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-const {crearTurno, getTurnos} = require('../controllers/turnos.controller');
-const { route } = require('./consultorio.routes');
-
-//GET
-router.get('/', getTurnos)
+const {crearTurno, obtenerTurnoPorId, 
+    obtenerTurnos, actualizarTurno, eliminarTurno} = require('../controllers/turnos.controller');
 
 //POST
 router.post('/', crearTurno);
+router.get('/', obtenerTurnos);
+router.get('/:id', obtenerTurnoPorId);
+router.put('/:id', actualizarTurno);
+router.delete('/:id', eliminarTurno);
 
 module.exports = router;

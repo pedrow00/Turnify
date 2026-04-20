@@ -1,3 +1,4 @@
+
 const verificarRol = (rolesPermitidos = []) => {
   return (req, res, next) => {
     const rol = req.headers['rol'];

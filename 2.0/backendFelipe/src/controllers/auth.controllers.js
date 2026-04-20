@@ -19,4 +19,30 @@ const login = async (req, res) => {
   res.json({ id: usuario.id, rol: usuario.rol });
 };
 
-module.exports = { login };
+const registrarUsuario = async ({ email, password, rol_id }) => {
+
+  console.log("ROL_ID:", rol_id, typeof rol_id);
+
+  const rol = await pool.query(
+    'SELECT id FROM roles WHERE id = $1',
+    [Number(rol_id)]
+  );
+
+  if (rol.rows.length === 0) {
+    throw new Error('Rol no válido');
+  }
+
+  const hash = await bcrypt.hash(password, 10);
+
+  const result = await pool.query(
+    `INSERT INTO usuarios (email, password_hash, rol_id)
+     VALUES ($1, $2, $3)
+     RETURNING id, email, rol_id`,
+    [email, hash, Number(rol_id)]
+  );
+
+  return result.rows[0];
+};
+
+
+module.exports = { login, registrarUsuario };
