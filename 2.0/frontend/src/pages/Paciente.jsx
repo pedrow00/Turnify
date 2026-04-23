@@ -1,25 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Paciente.css";
-
-const pacientesData = [
-  { id: 1, nombre: "Juan García", dni: "35.123.456", telefono: "351-123-4567", email: "juan.garcia@email.com", obraSocial: "OSDE", fechaNacimiento: "15/03/1985" },
-  { id: 2, nombre: "María López", dni: "27.654.321", telefono: "351-234-5678", email: "maria.lopez@email.com", obraSocial: "Swiss Medical", fechaNacimiento: "22/07/1990" },
-  { id: 3, nombre: "Carlos Rodríguez", dni: "40.987.654", telefono: "351-345-6789", email: "carlos.rodriguez@email.com", obraSocial: "Galeno", fechaNacimiento: "10/11/1978" },
-  { id: 4, nombre: "Ana Martínez", dni: "33.456.789", telefono: "351-456-7890", email: "ana.martinez@email.com", obraSocial: "Medicus", fechaNacimiento: "05/02/1995" },
-  { id: 5, nombre: "Pedro Sánchez", dni: "22.111.222", telefono: "351-567-8901", email: "pedro.sanchez@email.com", obraSocial: "OSDE", fechaNacimiento: "30/08/1982" },
-  { id: 6, nombre: "Laura González", dni: "29.333.444", telefono: "351-678-9012", email: "laura.gonzalez@email.com", obraSocial: "Sancor", fechaNacimiento: "18/12/1988" },
-];
 
 export default function Paciente() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroDni, setFiltroDni] = useState("");
+  const [pacientes, setPacientes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-  const pacientesFiltrados = pacientesData.filter((pac) => {
-    const coincideNombre = pac.nombre.toLowerCase().includes(busqueda.toLowerCase());
+  useEffect(() => {
+    const cargarPacientes = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/pacientes`);
+        const data = await response.json();
+        setPacientes(data);
+      } catch (err) {
+        setError("Error al cargar pacientes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarPacientes();
+  }, [apiUrl]);
+
+  const pacientesFiltrados = pacientes.filter((pac) => {
+    const nombreCompleto = `${pac.nombre ?? ""} ${pac.apellido ?? ""}`.trim();
+    const coincideNombre = nombreCompleto.toLowerCase().includes(busqueda.toLowerCase());
     const coincideDni = filtroDni === "" || pac.dni.includes(filtroDni);
     return coincideNombre && coincideDni;
   });
+
+  if (loading) return <p>Cargando pacientes...</p>;
+  if (error) return <p>{error}</p>;
+
 
   return (
     <div className="paciente-page">
@@ -60,10 +76,15 @@ export default function Paciente() {
             <div key={pac.id} className="paciente-card">
               <div className="paciente-header-card">
                 <div className="paciente-avatar">
-                  {pac.nombre.split(" ").map(n => n[0]).join("")}
+                  {`${pac.nombre ?? ""} ${pac.apellido ?? ""}`
+                    .trim()
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((n) => n[0])
+                    .join("")}
                 </div>
                 <div className="paciente-nombre">
-                  <h3>{pac.nombre}</h3>
+                  <h3>{pac.nombre} {pac.apellido}</h3>
                   <span className="dni">DNI: {pac.dni}</span>
                 </div>
               </div>
@@ -77,12 +98,16 @@ export default function Paciente() {
                   <span className="value">{pac.email}</span>
                 </div>
                 <div className="detalle-item">
-                  <span className="label">Obra Social</span>
-                  <span className="value">{pac.obraSocial}</span>
+                  <span className="label">Provincia</span>
+                  <span className="value">{pac.provincia_nombre || "Sin dato"}</span>
                 </div>
                 <div className="detalle-item">
                   <span className="label">Nacimiento</span>
-                  <span className="value">{pac.fechaNacimiento}</span>
+                  <span className="value">
+                    {pac.fecha_nacimiento
+                      ? new Date(pac.fecha_nacimiento).toLocaleDateString("es-AR")
+                      : "Sin dato"}
+                  </span>
                 </div>
               </div>
               <div className="paciente-actions">

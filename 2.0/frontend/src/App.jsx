@@ -4,6 +4,7 @@ import Inicio from './pages/Inicio'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Paciente from './pages/Paciente'
+import RegistrarPaciente from './pages/RegistrarPaciente'
 import Profesional from './pages/Profesional'
 import Turno from './pages/Turno'
 import Navbar from './components/Navbar'
@@ -17,6 +18,7 @@ function App() {
         <Route path="/login" element={<Login/>} />
         <Route path="/register" element={<Register/>} />
         <Route path="/paciente" element={<Paciente/>} />
+        <Route path="/paciente/nuevo" element={<RegistrarPaciente/>} />
         <Route path="/profesional" element={<Profesional/>} />
         <Route path="/turno" element={<Turno/>} />
       </Routes>

@@ -48,22 +48,22 @@ export default function Inicio() {
       <section className="features">
         <h2>¿Qué podés hacer?</h2>
         <div className="features-grid">
-          <Link to="/turnos" className="feature-card">
+          <Link to="/turno" className="feature-card">
             <div className="feature-icon">📆</div>
             <h3>Administrar Turnos</h3>
             <p>Creá, modificá y cancelá turnos de forma sencilla.</p>
           </Link>
-          <Link to="/pacientes" className="feature-card">
+          <Link to="/paciente" className="feature-card">
             <div className="feature-icon">👥</div>
             <h3>Gestionar Pacientes</h3>
             <p>Registrá y consultá el historial de tus pacientes.</p>
           </Link>
-          <Link to="/profesionales" className="feature-card">
+          <Link to="/profesional" className="feature-card">
             <div className="feature-icon">🩺</div>
             <h3>Control de Profesionales</h3>
             <p>Organizá la agenda de tus profesionales médicos.</p>
           </Link>
-          <Link to="/consultorios" className="feature-card">
+          <Link to="/consultorio" className="feature-card">
             <div className="feature-icon">🏥</div>
             <h3>Consultorios</h3>
             <p>Administrá los consultorios disponibles.</p>
