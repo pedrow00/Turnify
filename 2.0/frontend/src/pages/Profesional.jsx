@@ -1,99 +1,228 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Profesional.css";
 
-const profesionalesData = [
-  { id: 1, nombre: "Dr. Juan Pérez", especialidad: "Cardiología", telefono: "351-123-4567", email: "juan.perez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Juan" },
-  { id: 2, nombre: "Dra. María González", especialidad: "Pediatría", telefono: "351-234-5678", email: "maria.gonzalez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria" },
-  { id: 3, nombre: "Dr. Carlos López", especialidad: "Dermatología", telefono: "351-345-6789", email: "carlos.lopez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos" },
-  { id: 4, nombre: "Dra. Ana Rodríguez", especialidad: "Ginecología", telefono: "351-456-7890", email: "ana.rodriguez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" },
-  { id: 5, nombre: "Dr. Pedro Martínez", especialidad: "Cardiología", telefono: "351-567-8901", email: "pedro.martinez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro" },
-  { id: 6, nombre: "Dra. Laura Sánchez", especialidad: "Oftalmología", telefono: "351-678-9012", email: "laura.sanchez@turnify.com", foto: "https://api.dicebear.com/7.x/avataaars/svg?seed=Laura" },
-];
-
-const especialidades = ["Todas", "Cardiología", "Pediatría", "Dermatología", "Ginecología", "Oftalmología", "Neurología", "Ortopedia"];
-
 export default function Profesional() {
   const [busqueda, setBusqueda] = useState("");
-  const [especialidadFilter, setEspecialidadFilter] = useState("Todas");
+  const [profesionales, setProfesionales] = useState([]);
+  const [profesionalSeleccionado, setProfesionalSeleccionado] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-  const profesionalesFiltrados = profesionalesData.filter((prof) => {
-    const coincideNombre = prof.nombre.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideEspecialidad = especialidadFilter === "Todas" || prof.especialidad === especialidadFilter;
-    return coincideNombre && coincideEspecialidad;
+  useEffect(() => {
+    const cargarProfesionales = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/profesionales`);
+        const data = await response.json();
+        setProfesionales(data);
+      } catch (err) {
+        setError("Error al cargar profesionales");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarProfesionales();
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (!profesionalSeleccionado) {
+      return undefined;
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setProfesionalSeleccionado(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [profesionalSeleccionado]);
+
+  const profesionalesFiltrados = profesionales.filter((prof) => {
+    const termino = busqueda.trim().toLowerCase();
+
+    if (!termino) {
+      return true;
+    }
+
+    const nombre = String(prof.nombre ?? "").toLowerCase();
+    const apellido = String(prof.apellido ?? "").toLowerCase();
+    const cuil = String(prof.cuil ?? "").toLowerCase();
+    const nombreCompleto = `${nombre} ${apellido}`.trim();
+
+    return (
+      nombre.includes(termino) ||
+      apellido.includes(termino) ||
+      cuil.includes(termino) ||
+      nombreCompleto.includes(termino)
+    );
   });
 
+  if (loading) return <p>Cargando profesionales...</p>;
+  if (error) return <p>{error}</p>;
+
   return (
-    <div className="profesional-page">
-      <div className="profesional-header">
-        <div className="header-title">
-          <h1>Profesionales</h1>
-          <p>Gestiona los profesionales del centro de salud</p>
+    <>
+      <div className="profesional-page">
+        <div className="profesional-header">
+          <div className="header-title">
+            <h1>Profesionales</h1>
+            <p>Gestiona los profesionales del centro de salud</p>
+          </div>
+          <Link to="/profesional/nuevo" className="btn-nuevo">
+            + Nuevo Profesional
+          </Link>
         </div>
-        <Link to="/profesional/nuevo" className="btn-nuevo">
-          + Nuevo Profesional
-        </Link>
+
+        <div className="profesional-filters">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Buscar por CUIL, nombre o apellido..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="profesional-grid">
+          {profesionalesFiltrados.length > 0 ? (
+            profesionalesFiltrados.map((prof) => (
+              <div key={prof.id} className="profesional-card">
+                <div className="profesional-header-card">
+                  <div className="profesional-avatar">
+                    {`${prof.nombre ?? ""} ${prof.apellido ?? ""}`
+                      .trim()
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div className="profesional-nombre">
+                    <h3>
+                      {prof.nombre} {prof.apellido}
+                    </h3>
+                    <span className="profesional-code">CUIL: {prof.cuil || "Sin dato"}</span>
+                  </div>
+                </div>
+
+                <div className="profesional-detalles">
+                  <div className="detalle-item">
+                    <span className="label">Telefono</span>
+                    <span className="value">{prof.telefono || "Sin dato"}</span>
+                  </div>
+                  <div className="detalle-item">
+                    <span className="label">Email</span>
+                    <span className="value">{prof.email || "Sin dato"}</span>
+                  </div>
+                </div>
+
+                <div className="profesional-actions">
+                  <button
+                    type="button"
+                    className="btn-ver"
+                    onClick={() => setProfesionalSeleccionado(prof)}
+                  >
+                    Ver
+                  </button>
+                  <Link to={`/profesional/${prof.id}/editar`} className="btn-editar">
+                    Editar
+                  </Link>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="no-results">
+              <p>No se encontraron profesionales</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="profesional-filters">
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Buscar por nombre..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-        </div>
-        <div className="filter-box">
-          <select
-            value={especialidadFilter}
-            onChange={(e) => setEspecialidadFilter(e.target.value)}
+      {profesionalSeleccionado ? (
+        <div
+          className="profesional-modal-overlay"
+          onClick={() => setProfesionalSeleccionado(null)}
+          role="presentation"
+        >
+          <div
+            className="profesional-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profesional-modal-title"
+            onClick={(event) => event.stopPropagation()}
           >
-            {especialidades.map((esp) => (
-              <option key={esp} value={esp}>
-                {esp === "Todas" ? "Todas las especialidades" : esp}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+            <button
+              type="button"
+              className="profesional-modal-close"
+              onClick={() => setProfesionalSeleccionado(null)}
+              aria-label="Cerrar ficha del profesional"
+            >
+              x
+            </button>
 
-      <div className="profesional-grid">
-        {profesionalesFiltrados.length > 0 ? (
-          profesionalesFiltrados.map((prof) => (
-            <div key={prof.id} className="profesional-card">
-              <div className="profesional-header-card">
-                <div className="profesional-avatar">
-                  <img src={prof.foto} alt={prof.nombre} />
-                </div>
-                <div className="profesional-nombre">
-                  <h3>{prof.nombre}</h3>
-                  <span className="especialidad-badge">{prof.especialidad}</span>
-                </div>
+            <div className="profesional-modal-header">
+              <div className="profesional-modal-avatar">
+                {`${profesionalSeleccionado.nombre ?? ""} ${profesionalSeleccionado.apellido ?? ""}`
+                  .trim()
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((n) => n[0])
+                  .join("")}
               </div>
-              <div className="profesional-detalles">
-                <div className="detalle-item">
-                  <span className="label">Teléfono</span>
-                  <span className="value">{prof.telefono}</span>
-                </div>
-                <div className="detalle-item">
-                  <span className="label">Email</span>
-                  <span className="value">{prof.email}</span>
-                </div>
-              </div>
-              <div className="profesional-actions">
-                <button className="btn-ver">Ver detalle</button>
-                <button className="btn-editar">Editar</button>
+              <div>
+                <span className="profesional-modal-badge">Ficha del profesional</span>
+                <h2 id="profesional-modal-title">
+                  {profesionalSeleccionado.nombre} {profesionalSeleccionado.apellido}
+                </h2>
+                <p>{profesionalSeleccionado.cuil || "Sin CUIL registrado"}</p>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="no-results">
-            <p>No se encontraron profesionales</p>
+
+            <div className="profesional-modal-grid">
+              <div className="profesional-modal-item">
+                <span className="label">Nombre</span>
+                <span className="value">{profesionalSeleccionado.nombre || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Apellido</span>
+                <span className="value">{profesionalSeleccionado.apellido || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">CUIL</span>
+                <span className="value">{profesionalSeleccionado.cuil || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Email</span>
+                <span className="value">{profesionalSeleccionado.email || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Telefono</span>
+                <span className="value">{profesionalSeleccionado.telefono || "Sin dato"}</span>
+              </div>
+            </div>
+
+            <div className="profesional-modal-actions">
+              <button
+                type="button"
+                className="btn-editar profesional-modal-button"
+                onClick={() => setProfesionalSeleccionado(null)}
+              >
+                Cerrar
+              </button>
+              <Link
+                to={`/profesional/${profesionalSeleccionado.id}/editar`}
+                className="btn-ver profesional-modal-button"
+              >
+                Editar profesional
+              </Link>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : null}
+    </>
   );
 }

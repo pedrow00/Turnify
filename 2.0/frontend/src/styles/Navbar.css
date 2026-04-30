@@ -106,8 +106,6 @@
 .btn-login:hover {
   background: var(--primary-dark);
 }
-  color: var(--text-dark);
-}
 
 .user-logout {
   padding: 8px 16px;
