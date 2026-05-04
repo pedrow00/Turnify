@@ -15,12 +15,25 @@ const obtenerProfesionalPorId = async (id) => {
 
 // POST
 const crearProfesional = async (data) => {
-  const { nombre, apellido, cuil, email, telefono } = data;
+  const { 
+    nombre, apellido, sexo, cuil, email, telefono,
+    calle, numero, codigo_postal, piso, departamento,
+    provincia_nombre, localidad_nombre, foto_url
+  } = data;
 
   const result = await pool.query(
-    `INSERT INTO profesionales (nombre, apellido, cuil, email, telefono)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [nombre, apellido, cuil, email, telefono]
+    `INSERT INTO profesionales (
+      nombre, apellido, sexo, cuil, email, telefono,
+      calle, numero, codigo_postal, piso, departamento,
+      provincia_nombre, localidad_nombre, foto_url
+    )
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+     RETURNING *`,
+    [
+      nombre, apellido, sexo, cuil, email, telefono,
+      calle, numero, codigo_postal, piso, departamento,
+      provincia_nombre, localidad_nombre, foto_url
+    ]
   );
 
   return result.rows[0];
@@ -28,12 +41,25 @@ const crearProfesional = async (data) => {
 
 // PUT
 const actualizarProfesional = async (id, data) => {
-  const { nombre, apellido, cuil, email, telefono } = data;
+  const { 
+    nombre, apellido, sexo, cuil, email, telefono,
+    calle, numero, codigo_postal, piso, departamento,
+    provincia_nombre, localidad_nombre, foto_url
+  } = data;
 
   const result = await pool.query(
-    `UPDATE profesionales SET nombre=$1, apellido=$2, cuil=$3, email=$4, telefono=$5,
-     fecha_modificacion=CURRENT_TIMESTAMP WHERE id=$6 RETURNING *`,
-    [nombre, apellido, cuil, email, telefono, id]
+    `UPDATE profesionales SET 
+      nombre=$1, apellido=$2, sexo=$3, cuil=$4, email=$5, telefono=$6,
+      calle=$7, numero=$8, codigo_postal=$9, piso=$10, departamento=$11,
+      provincia_nombre=$12, localidad_nombre=$13, foto_url=$14,
+      fecha_modificacion=CURRENT_TIMESTAMP 
+     WHERE id=$15 RETURNING *`,
+    [
+      nombre, apellido, sexo, cuil, email, telefono,
+      calle, numero, codigo_postal, piso, departamento,
+      provincia_nombre, localidad_nombre, foto_url,
+      id
+    ]
   );
 
   if (result.rows.length === 0) throw new Error('Profesional no encontrado');

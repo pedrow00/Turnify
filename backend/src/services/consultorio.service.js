@@ -31,7 +31,11 @@ const actualizarConsultorio = async (id, data) => {
   const { numero_consultorio, piso, ubicacion, activo } = data;
 
   const result = await pool.query(
-    `UPDATE consultorios SET numero_consultorio=$1, piso=$2, ubicacion=$3, activo=$4
+    `UPDATE consultorios SET 
+      numero_consultorio=$1, 
+      piso=$2, 
+      ubicacion=$3, 
+      activo=COALESCE($4, activo)
      WHERE id=$5 RETURNING *`,
     [numero_consultorio, piso, ubicacion, activo, id]
   );
