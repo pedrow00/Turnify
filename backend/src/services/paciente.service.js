@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { getFriendlyDbError } = require('../utils/dbErrors');
 
 // GET todos
 const obtenerPacientes = async () => {
@@ -21,22 +22,26 @@ const crearPaciente = async (data) => {
     calle, numero, codigo_postal, piso, dpto, observaciones
   } = data;
 
-  const result = await pool.query(
-    `INSERT INTO pacientes (
-      nombre, apellido, dni, email, telefono, fecha_nacimiento,
-      provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-      calle, numero, codigo_postal, piso, dpto, observaciones
-    )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-     RETURNING *`,
-    [
-      nombre, apellido, dni, email, telefono, fecha_nacimiento,
-      provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-      calle, numero, codigo_postal, piso, dpto, observaciones
-    ]
-  );
+  try {
+    const result = await pool.query(
+      `INSERT INTO pacientes (
+        nombre, apellido, dni, email, telefono, fecha_nacimiento,
+        provincia_id, provincia_nombre, localidad_id, localidad_nombre,
+        calle, numero, codigo_postal, piso, dpto, observaciones
+      )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       RETURNING *`,
+      [
+        nombre, apellido, dni, email, telefono, fecha_nacimiento,
+        provincia_id, provincia_nombre, localidad_id, localidad_nombre,
+        calle, numero, codigo_postal, piso, dpto, observaciones
+      ]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'create');
+  }
 };
 
 // PUT
@@ -47,23 +52,27 @@ const actualizarPaciente = async (id, data) => {
     calle, numero, codigo_postal, piso, dpto, observaciones
   } = data;
 
-  const result = await pool.query(
-    `UPDATE pacientes SET 
-      nombre=$1, apellido=$2, dni=$3, email=$4, telefono=$5, fecha_nacimiento=$6,
-      provincia_id=$7, provincia_nombre=$8, localidad_id=$9, localidad_nombre=$10,
-      calle=$11, numero=$12, codigo_postal=$13, piso=$14, dpto=$15, observaciones=$16,
-      fecha_modificacion=CURRENT_TIMESTAMP
-     WHERE id=$17 RETURNING *`,
-    [
-      nombre, apellido, dni, email, telefono, fecha_nacimiento,
-      provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-      calle, numero, codigo_postal, piso, dpto, observaciones,
-      id
-    ]
-  );
+  try {
+    const result = await pool.query(
+      `UPDATE pacientes SET 
+        nombre=$1, apellido=$2, dni=$3, email=$4, telefono=$5, fecha_nacimiento=$6,
+        provincia_id=$7, provincia_nombre=$8, localidad_id=$9, localidad_nombre=$10,
+        calle=$11, numero=$12, codigo_postal=$13, piso=$14, dpto=$15, observaciones=$16,
+        fecha_modificacion=CURRENT_TIMESTAMP
+       WHERE id=$17 RETURNING *`,
+      [
+        nombre, apellido, dni, email, telefono, fecha_nacimiento,
+        provincia_id, provincia_nombre, localidad_id, localidad_nombre,
+        calle, numero, codigo_postal, piso, dpto, observaciones,
+        id
+      ]
+    );
 
-  if (result.rows.length === 0) throw new Error('Paciente no encontrado');
-  return result.rows[0];
+    if (result.rows.length === 0) throw new Error('Paciente no encontrado');
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'update');
+  }
 };
 
 // DELETE

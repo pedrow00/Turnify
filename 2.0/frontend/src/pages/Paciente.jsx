@@ -16,7 +16,7 @@ export default function Paciente() {
         const response = await fetch(`${apiUrl}/pacientes`);
         const data = await response.json();
         setPacientes(data);
-      } catch (err) {
+      } catch {
         setError("Error al cargar pacientes");
       } finally {
         setLoading(false);
@@ -60,6 +60,18 @@ export default function Paciente() {
       nombreCompleto.includes(termino)
     );
   });
+
+  const formatDireccion = (pac) => {
+    const calleNumero = [pac.calle, pac.numero].filter(Boolean).join(" ");
+    const pisoDepto = [pac.piso ? `Piso ${pac.piso}` : "", pac.dpto ? `Depto ${pac.dpto}` : ""]
+      .filter(Boolean)
+      .join(" ");
+    const partes = [calleNumero, pisoDepto, pac.codigo_postal ? `CP ${pac.codigo_postal}` : ""]
+      .filter(Boolean)
+      .join(", ");
+
+    return partes || "Sin dato";
+  };
 
   if (loading) return <p>Cargando pacientes...</p>;
   if (error) return <p>{error}</p>;
@@ -118,8 +130,11 @@ export default function Paciente() {
                     <span className="value">{pac.email}</span>
                   </div>
                   <div className="detalle-item">
-                    <span className="label">Provincia</span>
-                    <span className="value">{pac.provincia_nombre || "Sin dato"}</span>
+                    <span className="label">Ubicacion</span>
+                    <span className="value">
+                      {[pac.localidad_nombre, pac.provincia_nombre].filter(Boolean).join(", ") ||
+                        "Sin dato"}
+                    </span>
                   </div>
                   <div className="detalle-item">
                     <span className="label">Nacimiento</span>
@@ -231,6 +246,22 @@ export default function Paciente() {
                 <span className="label">Localidad</span>
                 <span className="value">
                   {pacienteSeleccionado.localidad_nombre || "Sin dato"}
+                </span>
+              </div>
+              <div className="paciente-modal-item">
+                <span className="label">Direccion</span>
+                <span className="value">{formatDireccion(pacienteSeleccionado)}</span>
+              </div>
+              <div className="paciente-modal-item">
+                <span className="label">Codigo postal</span>
+                <span className="value">
+                  {pacienteSeleccionado.codigo_postal || "Sin dato"}
+                </span>
+              </div>
+              <div className="paciente-modal-item">
+                <span className="label">Observaciones</span>
+                <span className="value">
+                  {pacienteSeleccionado.observaciones || "Sin dato"}
                 </span>
               </div>
             </div>

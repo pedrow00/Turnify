@@ -11,6 +11,9 @@ import RegistrarProfesional from './pages/RegistrarProfesional'
 import EditarProfesional from './pages/EditarProfesional'
 import Turno from './pages/Turno'
 import Navbar from './components/Navbar'
+import Consultorio from './pages/Consultorio'
+import RegistrarConsultorio from './pages/RegistrarConsultorio'
+import EditarConsultorio from './pages/EditarConsultorio'
 
 function App() {
   return (
@@ -27,6 +30,9 @@ function App() {
         <Route path="/profesional/nuevo" element={<RegistrarProfesional/>} />
         <Route path="/profesional/:id/editar" element={<EditarProfesional/>} />
         <Route path="/turno" element={<Turno/>} />
+        <Route path="/consultorio" element={<Consultorio/>} />
+        <Route path="/consultorio/nuevo" element={<RegistrarConsultorio/>} />
+        <Route path="/consultorio/:id/editar" element={<EditarConsultorio/>} />
       </Routes>
     </BrowserRouter>
   )

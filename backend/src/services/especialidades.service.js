@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { getFriendlyDbError } = require('../utils/dbErrors');
 
 // GET todos
 const obtenerEspecialidades = async () => {
@@ -17,27 +18,35 @@ const obtenerEspecialidadPorId = async (id) => {
 const crearEspecialidad = async (data) => {
   const { nombre } = data;
 
-  const result = await pool.query(
-    `INSERT INTO especialidades (nombre)
-     VALUES ($1) RETURNING *`,
-    [nombre]
-  );
+  try {
+    const result = await pool.query(
+      `INSERT INTO especialidades (nombre)
+       VALUES ($1) RETURNING *`,
+      [nombre]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'create');
+  }
 };
 
 // PUT
 const actualizarEspecialidad = async (id, data) => {
   const { nombre } = data;
 
-  const result = await pool.query(
-    `UPDATE especialidades SET nombre=$1
-     WHERE id=$2 RETURNING *`,
-    [nombre, id]
-  );
+  try {
+    const result = await pool.query(
+      `UPDATE especialidades SET nombre=$1
+       WHERE id=$2 RETURNING *`,
+      [nombre, id]
+    );
 
-  if (result.rows.length === 0) throw new Error('Especialidad no encontrada');
-  return result.rows[0];
+    if (result.rows.length === 0) throw new Error('Especialidad no encontrada');
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'update');
+  }
 };
 
 // DELETE

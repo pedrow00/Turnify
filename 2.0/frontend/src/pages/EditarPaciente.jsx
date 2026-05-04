@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "../styles/RegistrarPaciente.css";
 
@@ -15,6 +15,12 @@ const initialForm = {
   provincia_nombre: "",
   localidad_id: "",
   localidad_nombre: "",
+  calle: "",
+  numero: "",
+  codigo_postal: "",
+  piso: "",
+  dpto: "",
+  observaciones: "",
 };
 
 export default function EditarPaciente() {
@@ -50,7 +56,7 @@ export default function EditarPaciente() {
         );
 
         setProvincias(provinciasOrdenadas);
-      } catch (error) {
+      } catch {
         setSubmitError("No se pudieron cargar las provincias.");
       } finally {
         setLoadingProvincias(false);
@@ -60,7 +66,7 @@ export default function EditarPaciente() {
     cargarProvincias();
   }, []);
 
-  const cargarPaciente = async () => {
+  const cargarPaciente = useCallback(async () => {
     try {
       setLoadingPaciente(true);
       setSubmitError("");
@@ -87,6 +93,12 @@ export default function EditarPaciente() {
         provincia_nombre: paciente.provincia_nombre ?? "",
         localidad_id: paciente.localidad_id ? String(paciente.localidad_id) : "",
         localidad_nombre: paciente.localidad_nombre ?? "",
+        calle: paciente.calle ?? "",
+        numero: paciente.numero ?? "",
+        codigo_postal: paciente.codigo_postal ?? "",
+        piso: paciente.piso ?? "",
+        dpto: paciente.dpto ?? "",
+        observaciones: paciente.observaciones ?? "",
       };
 
       setForm(nextForm);
@@ -96,15 +108,15 @@ export default function EditarPaciente() {
     } finally {
       setLoadingPaciente(false);
     }
-  };
-
-  useEffect(() => {
-    cargarPaciente();
   }, [apiUrl, id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargarPaciente();
+  }, [cargarPaciente]);
+
+  useEffect(() => {
     if (!form.provincia_id || !form.provincia_nombre) {
-      setLocalidades([]);
       return;
     }
 
@@ -128,7 +140,7 @@ export default function EditarPaciente() {
         );
 
         setLocalidades(localidadesOrdenadas);
-      } catch (error) {
+      } catch {
         setLocalidades([]);
         setSubmitError("No se pudieron cargar las localidades.");
       } finally {
@@ -228,6 +240,14 @@ export default function EditarPaciente() {
       nuevosErrores.telefono = "El telefono debe tener entre 6 y 15 digitos.";
     }
 
+    if (form.numero.trim() && !/^\d+$/.test(form.numero.trim())) {
+      nuevosErrores.numero = "El numero debe contener solo digitos.";
+    }
+
+    if (form.codigo_postal.trim() && !/^[A-Za-z0-9 -]{4,12}$/.test(form.codigo_postal.trim())) {
+      nuevosErrores.codigo_postal = "Ingresa un codigo postal valido.";
+    }
+
     if (!form.fecha_nacimiento) {
       nuevosErrores.fecha_nacimiento = "La fecha de nacimiento es obligatoria.";
     } else {
@@ -274,6 +294,12 @@ export default function EditarPaciente() {
         provincia_nombre: form.provincia_nombre,
         localidad_id: form.localidad_id,
         localidad_nombre: form.localidad_nombre,
+        calle: form.calle.trim() || null,
+        numero: form.numero.trim() || null,
+        codigo_postal: form.codigo_postal.trim() || null,
+        piso: form.piso.trim() || null,
+        dpto: form.dpto.trim() || null,
+        observaciones: form.observaciones.trim() || null,
       };
 
       const response = await fetch(`${apiUrl}/pacientes/${id}`, {
@@ -309,6 +335,12 @@ export default function EditarPaciente() {
   const formSnapshot = JSON.stringify({
     ...form,
     telefono: form.telefono.trim() || "",
+    calle: form.calle.trim(),
+    numero: form.numero.trim(),
+    codigo_postal: form.codigo_postal.trim(),
+    piso: form.piso.trim(),
+    dpto: form.dpto.trim(),
+    observaciones: form.observaciones.trim(),
   });
   const isDirty = formSnapshot !== initialSnapshot;
   const canSubmit =
@@ -490,7 +522,7 @@ export default function EditarPaciente() {
             <section className="registro-section">
               <div className="section-heading">
                 <h2>Ubicacion</h2>
-                <p>Provincia y localidad obtenidas desde la API oficial.</p>
+                <p>Provincia, localidad y domicilio del paciente.</p>
               </div>
 
               <div className="registro-grid">
@@ -544,6 +576,100 @@ export default function EditarPaciente() {
                   {errors.localidad_id ? (
                     <span className="field-error">{errors.localidad_id}</span>
                   ) : null}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="calle">Calle</label>
+                  <input
+                    id="calle"
+                    name="calle"
+                    type="text"
+                    value={form.calle}
+                    onChange={handleChange}
+                    placeholder="Av. San Martin"
+                    disabled={guardando}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="numero">Numero</label>
+                  <input
+                    id="numero"
+                    name="numero"
+                    type="text"
+                    inputMode="numeric"
+                    value={form.numero}
+                    onChange={handleChange}
+                    placeholder="1234"
+                    className={errors.numero ? "input-error" : ""}
+                    disabled={guardando}
+                  />
+                  {errors.numero ? <span className="field-error">{errors.numero}</span> : null}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="codigo_postal">Codigo postal</label>
+                  <input
+                    id="codigo_postal"
+                    name="codigo_postal"
+                    type="text"
+                    value={form.codigo_postal}
+                    onChange={handleChange}
+                    placeholder="5000"
+                    className={errors.codigo_postal ? "input-error" : ""}
+                    disabled={guardando}
+                  />
+                  {errors.codigo_postal ? (
+                    <span className="field-error">{errors.codigo_postal}</span>
+                  ) : null}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="piso">Piso</label>
+                  <input
+                    id="piso"
+                    name="piso"
+                    type="text"
+                    value={form.piso}
+                    onChange={handleChange}
+                    placeholder="2"
+                    disabled={guardando}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="dpto">Departamento</label>
+                  <input
+                    id="dpto"
+                    name="dpto"
+                    type="text"
+                    value={form.dpto}
+                    onChange={handleChange}
+                    placeholder="B"
+                    disabled={guardando}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="registro-section">
+              <div className="section-heading">
+                <h2>Observaciones</h2>
+                <p>Notas internas para completar la ficha del paciente.</p>
+              </div>
+
+              <div className="registro-grid">
+                <div className="field field-full">
+                  <label htmlFor="observaciones">Observaciones</label>
+                  <textarea
+                    id="observaciones"
+                    name="observaciones"
+                    value={form.observaciones}
+                    onChange={handleChange}
+                    placeholder="Alergias, indicaciones o referencias relevantes"
+                    rows="4"
+                    disabled={guardando}
+                  />
                 </div>
               </div>
             </section>

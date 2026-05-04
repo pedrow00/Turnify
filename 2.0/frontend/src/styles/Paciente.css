@@ -24,9 +24,11 @@ body {
 
 /* Page */
 .paciente-page {
-  padding: 32px 40px;
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1126px;
   margin: 0 auto;
+  padding: 32px;
+  text-align: left;
 }
 
 /* Header */
@@ -71,13 +73,13 @@ body {
   margin-bottom: 32px;
 }
 
-.search-box {
+.paciente-filters .search-box {
   flex: 1;
-  max-width: 300px;
+  max-width: 340px;
   position: relative;
 }
 
-.search-box .search-icon {
+.paciente-filters .search-box .search-icon {
   position: absolute;
   left: 14px;
   top: 50%;
@@ -85,9 +87,9 @@ body {
   font-size: 16px;
 }
 
-.search-box input {
+.paciente-filters .search-box input {
   width: 100%;
-  padding: 12px 14px 12px 42px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
@@ -95,7 +97,7 @@ body {
   transition: all 0.2s ease;
 }
 
-.search-box input:focus {
+.paciente-filters .search-box input:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -104,7 +106,7 @@ body {
 /* Grid - Layout en fila */
 .paciente-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -113,6 +115,9 @@ body {
   background: var(--white);
   border-radius: 12px;
   padding: 20px;
+  min-height: 286px;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--border);
   transition: all 0.2s ease;
@@ -128,6 +133,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-height: 65px;
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
@@ -163,6 +169,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  min-height: 92px;
   margin-bottom: 16px;
 }
 
@@ -184,12 +191,14 @@ body {
   font-size: 13px;
   color: var(--text-dark);
   font-weight: 500;
+  word-break: break-word;
 }
 
 /* Actions */
 .paciente-actions {
   display: flex;
   gap: 8px;
+  margin-top: auto;
 }
 
 .btn-ver,
@@ -398,7 +407,7 @@ body {
     flex-direction: column;
   }
 
-  .search-box {
+  .paciente-filters .search-box {
     max-width: 100%;
   }
 

@@ -16,7 +16,7 @@ export default function Profesional() {
         const response = await fetch(`${apiUrl}/profesionales`);
         const data = await response.json();
         setProfesionales(data);
-      } catch (err) {
+      } catch {
         setError("Error al cargar profesionales");
       } finally {
         setLoading(false);
@@ -61,6 +61,26 @@ export default function Profesional() {
     );
   });
 
+  const formatDireccion = (prof) => {
+    const calleNumero = [prof.calle, prof.numero].filter(Boolean).join(" ");
+    const pisoDepto = [prof.piso ? `Piso ${prof.piso}` : "", prof.departamento ? `Depto ${prof.departamento}` : ""]
+      .filter(Boolean)
+      .join(" ");
+    const partes = [calleNumero, pisoDepto, prof.codigo_postal ? `CP ${prof.codigo_postal}` : ""]
+      .filter(Boolean)
+      .join(", ");
+
+    return partes || "Sin dato";
+  };
+
+  const getIniciales = (prof) =>
+    `${prof.nombre ?? ""} ${prof.apellido ?? ""}`
+      .trim()
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("");
+
   if (loading) return <p>Cargando profesionales...</p>;
   if (error) return <p>{error}</p>;
 
@@ -94,12 +114,11 @@ export default function Profesional() {
               <div key={prof.id} className="profesional-card">
                 <div className="profesional-header-card">
                   <div className="profesional-avatar">
-                    {`${prof.nombre ?? ""} ${prof.apellido ?? ""}`
-                      .trim()
-                      .split(" ")
-                      .filter(Boolean)
-                      .map((n) => n[0])
-                      .join("")}
+                    {prof.foto_url ? (
+                      <img src={prof.foto_url} alt={`Foto de ${prof.nombre} ${prof.apellido}`} />
+                    ) : (
+                      getIniciales(prof)
+                    )}
                   </div>
                   <div className="profesional-nombre">
                     <h3>
@@ -117,6 +136,14 @@ export default function Profesional() {
                   <div className="detalle-item">
                     <span className="label">Email</span>
                     <span className="value">{prof.email || "Sin dato"}</span>
+                  </div>
+                  <div className="detalle-item">
+                    <span className="label">Sexo</span>
+                    <span className="value">{prof.sexo || "Sin dato"}</span>
+                  </div>
+                  <div className="detalle-item">
+                    <span className="label">Provincia</span>
+                    <span className="value">{prof.provincia_nombre || "Sin dato"}</span>
                   </div>
                 </div>
 
@@ -166,12 +193,14 @@ export default function Profesional() {
 
             <div className="profesional-modal-header">
               <div className="profesional-modal-avatar">
-                {`${profesionalSeleccionado.nombre ?? ""} ${profesionalSeleccionado.apellido ?? ""}`
-                  .trim()
-                  .split(" ")
-                  .filter(Boolean)
-                  .map((n) => n[0])
-                  .join("")}
+                {profesionalSeleccionado.foto_url ? (
+                  <img
+                    src={profesionalSeleccionado.foto_url}
+                    alt={`Foto de ${profesionalSeleccionado.nombre} ${profesionalSeleccionado.apellido}`}
+                  />
+                ) : (
+                  getIniciales(profesionalSeleccionado)
+                )}
               </div>
               <div>
                 <span className="profesional-modal-badge">Ficha del profesional</span>
@@ -196,12 +225,32 @@ export default function Profesional() {
                 <span className="value">{profesionalSeleccionado.cuil || "Sin dato"}</span>
               </div>
               <div className="profesional-modal-item">
+                <span className="label">Sexo</span>
+                <span className="value">{profesionalSeleccionado.sexo || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
                 <span className="label">Email</span>
                 <span className="value">{profesionalSeleccionado.email || "Sin dato"}</span>
               </div>
               <div className="profesional-modal-item">
                 <span className="label">Telefono</span>
                 <span className="value">{profesionalSeleccionado.telefono || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Provincia</span>
+                <span className="value">
+                  {profesionalSeleccionado.provincia_nombre || "Sin dato"}
+                </span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Localidad</span>
+                <span className="value">
+                  {profesionalSeleccionado.localidad_nombre || "Sin dato"}
+                </span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Direccion</span>
+                <span className="value">{formatDireccion(profesionalSeleccionado)}</span>
               </div>
             </div>
 

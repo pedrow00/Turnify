@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { getFriendlyDbError } = require('../utils/dbErrors');
 
 // GET todos
 const obtenerConsultorios = async () => {
@@ -15,33 +16,41 @@ const obtenerConsultorioPorId = async (id) => {
 
 // POST
 const crearConsultorio = async (data) => {
-  const { numero_consultorio, piso, ubicacion } = data;
+  const { numero_consultorio, piso, ubicacion, activo } = data;
 
-  const result = await pool.query(
-    `INSERT INTO consultorios (numero_consultorio, piso, ubicacion)
-     VALUES ($1,$2,$3) RETURNING *`,
-    [numero_consultorio, piso, ubicacion]
-  );
+  try {
+    const result = await pool.query(
+      `INSERT INTO consultorios (numero_consultorio, piso, ubicacion, activo)
+       VALUES ($1,$2,$3,$4) RETURNING *`,
+      [numero_consultorio, piso, ubicacion, activo]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'create');
+  }
 };
 
 // PUT
 const actualizarConsultorio = async (id, data) => {
   const { numero_consultorio, piso, ubicacion, activo } = data;
 
-  const result = await pool.query(
-    `UPDATE consultorios SET 
-      numero_consultorio=$1, 
-      piso=$2, 
-      ubicacion=$3, 
-      activo=COALESCE($4, activo)
-     WHERE id=$5 RETURNING *`,
-    [numero_consultorio, piso, ubicacion, activo, id]
-  );
+  try {
+    const result = await pool.query(
+      `UPDATE consultorios SET 
+        numero_consultorio=$1, 
+        piso=$2, 
+        ubicacion=$3, 
+        activo=COALESCE($4, activo)
+       WHERE id=$5 RETURNING *`,
+      [numero_consultorio, piso, ubicacion, activo, id]
+    );
 
-  if (result.rows.length === 0) throw new Error('Consultorio no encontrado');
-  return result.rows[0];
+    if (result.rows.length === 0) throw new Error('Consultorio no encontrado');
+    return result.rows[0];
+  } catch (error) {
+    throw getFriendlyDbError(error, 'update');
+  }
 };
 
 // DELETE
