@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Profesional.css";
+import { formatHorario } from "../utils/horariosProfesionales";
 
 export default function Profesional() {
   const [busqueda, setBusqueda] = useState("");
@@ -113,6 +114,9 @@ export default function Profesional() {
       .map((n) => n[0])
       .join("");
 
+  const getHorariosActivos = (prof) =>
+    Array.isArray(prof.horarios) ? prof.horarios.filter((horario) => horario.activo !== false) : [];
+
   if (loading) return <p>Cargando profesionales...</p>;
   if (error) return <p>{error}</p>;
 
@@ -211,11 +215,19 @@ export default function Profesional() {
                       <span className="label">Matricula</span>
                       <span className="value">{prof.matricula || "Sin dato"}</span>
                     </div>
-                    <div className="detalle-item">
-                      <span className="label">Especialidad</span>
-                      <span className="value">{getEspecialidadNombre(prof)}</span>
-                    </div>
+                  <div className="detalle-item">
+                    <span className="label">Especialidad</span>
+                    <span className="value">{getEspecialidadNombre(prof)}</span>
                   </div>
+                  <div className="detalle-item detalle-item-full">
+                    <span className="label">Horarios</span>
+                    <span className="value">
+                      {getHorariosActivos(prof).length > 0
+                        ? `${getHorariosActivos(prof).length} rango(s) cargado(s)`
+                        : "Sin horarios"}
+                    </span>
+                  </div>
+                </div>
 
                   <div className="profesional-actions">
                     <button
@@ -330,6 +342,20 @@ export default function Profesional() {
               <div className="profesional-modal-item">
                 <span className="label">Direccion</span>
                 <span className="value">{formatDireccion(profesionalSeleccionado)}</span>
+              </div>
+              <div className="profesional-modal-item profesional-modal-item-full">
+                <span className="label">Horarios disponibles</span>
+                <div className="profesional-horarios-list">
+                  {getHorariosActivos(profesionalSeleccionado).length > 0 ? (
+                    getHorariosActivos(profesionalSeleccionado).map((horario, index) => (
+                      <span key={`${horario.dia}-${horario.hora_inicio}-${index}`}>
+                        {formatHorario(horario)}
+                      </span>
+                    ))
+                  ) : (
+                    <span>Sin horarios cargados</span>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "../styles/RegistrarPaciente.css";
+import {
+  crearHorarioVacio,
+  diasSemana,
+  getHorariosError,
+  normalizarHorariosDesdeApi,
+  prepararHorariosPayload,
+} from "../utils/horariosProfesionales";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 const FOTO_MAX_SIZE = 2 * 1024 * 1024;
@@ -31,6 +38,7 @@ export default function EditarProfesional() {
   const fotoInputRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
+  const [horarios, setHorarios] = useState([crearHorarioVacio()]);
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
@@ -106,6 +114,7 @@ export default function EditarProfesional() {
       }
 
       const profesional = await response.json();
+      const nextHorarios = normalizarHorariosDesdeApi(profesional.horarios);
       const nextForm = {
         nombre: profesional.nombre ?? "",
         apellido: profesional.apellido ?? "",
@@ -126,7 +135,13 @@ export default function EditarProfesional() {
       };
 
       setForm(nextForm);
-      setInitialSnapshot(JSON.stringify(nextForm));
+      setHorarios(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]);
+      setInitialSnapshot(
+        JSON.stringify({
+          form: nextForm,
+          horarios: prepararHorariosPayload(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]),
+        })
+      );
     } catch (error) {
       setLoadError(error.message || "No se pudo cargar el profesional.");
     } finally {
@@ -273,6 +288,32 @@ export default function EditarProfesional() {
     setSubmitError("");
   };
 
+  const handleHorarioChange = (index, fieldName, value) => {
+    setHorarios((currentHorarios) =>
+      currentHorarios.map((horario, currentIndex) =>
+        currentIndex === index ? { ...horario, [fieldName]: value } : horario
+      )
+    );
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
+  const agregarHorario = () => {
+    setHorarios((currentHorarios) => [...currentHorarios, crearHorarioVacio()]);
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
+  const quitarHorario = (index) => {
+    setHorarios((currentHorarios) =>
+      currentHorarios.length === 1
+        ? [crearHorarioVacio()]
+        : currentHorarios.filter((_, currentIndex) => currentIndex !== index)
+    );
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
   const validarFormulario = () => {
     const nuevosErrores = {};
 
@@ -324,6 +365,11 @@ export default function EditarProfesional() {
       nuevosErrores.codigo_postal = "Ingresa un codigo postal valido.";
     }
 
+    const horariosError = getHorariosError(horarios);
+    if (horariosError) {
+      nuevosErrores.horarios = horariosError;
+    }
+
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -356,6 +402,7 @@ export default function EditarProfesional() {
         provincia_nombre: form.provincia_nombre || null,
         localidad_nombre: form.localidad_nombre || null,
         foto_url: form.foto_url.trim() || null,
+        horarios: prepararHorariosPayload(horarios),
       };
 
       const response = await fetch(`${apiUrl}/profesionales/${id}`, {
@@ -371,7 +418,24 @@ export default function EditarProfesional() {
         throw new Error(errorData.error || "No se pudo actualizar el profesional.");
       }
 
-      setInitialSnapshot(JSON.stringify(payload));
+      setInitialSnapshot(
+        JSON.stringify({
+          form: {
+            ...form,
+            email: form.email.trim(),
+            telefono: form.telefono.trim(),
+            matricula: form.matricula.trim(),
+            especialidad_id: form.especialidad_id,
+            calle: form.calle.trim(),
+            numero: form.numero.trim(),
+            codigo_postal: form.codigo_postal.trim(),
+            piso: form.piso.trim(),
+            departamento: form.departamento.trim(),
+            foto_url: form.foto_url.trim(),
+          },
+          horarios: prepararHorariosPayload(horarios),
+        })
+      );
       navigate("/profesional");
     } catch (error) {
       setSubmitError(error.message || "No se pudo actualizar el profesional.");
@@ -389,17 +453,20 @@ export default function EditarProfesional() {
     .slice(0, 2)
     .toUpperCase();
   const formSnapshot = JSON.stringify({
-    ...form,
-    email: form.email.trim(),
-    telefono: form.telefono.trim(),
-    matricula: form.matricula.trim(),
-    especialidad_id: form.especialidad_id,
-    calle: form.calle.trim(),
-    numero: form.numero.trim(),
-    codigo_postal: form.codigo_postal.trim(),
-    piso: form.piso.trim(),
-    departamento: form.departamento.trim(),
-    foto_url: form.foto_url.trim(),
+    form: {
+      ...form,
+      email: form.email.trim(),
+      telefono: form.telefono.trim(),
+      matricula: form.matricula.trim(),
+      especialidad_id: form.especialidad_id,
+      calle: form.calle.trim(),
+      numero: form.numero.trim(),
+      codigo_postal: form.codigo_postal.trim(),
+      piso: form.piso.trim(),
+      departamento: form.departamento.trim(),
+      foto_url: form.foto_url.trim(),
+    },
+    horarios: prepararHorariosPayload(horarios),
   });
   const isDirty = formSnapshot !== initialSnapshot;
   const canSubmit =
@@ -812,6 +879,81 @@ export default function EditarProfesional() {
                     <span className="field-error">{errors.foto_url}</span>
                   ) : null}
                 </div>
+              </div>
+            </section>
+
+            <section className="registro-section">
+              <div className="section-heading">
+                <h2>Horarios de atencion</h2>
+                <p>Actualiza los dias y rangos disponibles del profesional.</p>
+              </div>
+
+              <div className="horarios-editor">
+                {horarios.map((horario, index) => (
+                  <div className="horario-row" key={`${horario.dia}-${index}`}>
+                    <div className="field">
+                      <label htmlFor={`horario-dia-${index}`}>Dia</label>
+                      <select
+                        id={`horario-dia-${index}`}
+                        value={horario.dia}
+                        onChange={(event) => handleHorarioChange(index, "dia", event.target.value)}
+                        disabled={guardando}
+                      >
+                        {diasSemana.map((dia) => (
+                          <option key={dia} value={dia}>
+                            {dia.charAt(0).toUpperCase() + dia.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`horario-inicio-${index}`}>Desde</label>
+                      <input
+                        id={`horario-inicio-${index}`}
+                        type="time"
+                        value={horario.hora_inicio}
+                        onChange={(event) =>
+                          handleHorarioChange(index, "hora_inicio", event.target.value)
+                        }
+                        disabled={guardando}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor={`horario-fin-${index}`}>Hasta</label>
+                      <input
+                        id={`horario-fin-${index}`}
+                        type="time"
+                        value={horario.hora_fin}
+                        onChange={(event) =>
+                          handleHorarioChange(index, "hora_fin", event.target.value)
+                        }
+                        disabled={guardando}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-secondary horario-remove"
+                      onClick={() => quitarHorario(index)}
+                      disabled={guardando}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+
+                {errors.horarios ? <span className="field-error">{errors.horarios}</span> : null}
+
+                <button
+                  type="button"
+                  className="btn-secondary horario-add"
+                  onClick={agregarHorario}
+                  disabled={guardando}
+                >
+                  + Agregar horario
+                </button>
               </div>
             </section>
 

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegistrarPaciente.css";
+import {
+  crearHorarioVacio,
+  diasSemana,
+  getHorariosError,
+  prepararHorariosPayload,
+} from "../utils/horariosProfesionales";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 const FOTO_MAX_SIZE = 2 * 1024 * 1024;
@@ -29,6 +35,7 @@ export default function RegistrarProfesional() {
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
+  const [horarios, setHorarios] = useState([crearHorarioVacio()]);
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
@@ -215,6 +222,32 @@ export default function RegistrarProfesional() {
     setSubmitError("");
   };
 
+  const handleHorarioChange = (index, fieldName, value) => {
+    setHorarios((currentHorarios) =>
+      currentHorarios.map((horario, currentIndex) =>
+        currentIndex === index ? { ...horario, [fieldName]: value } : horario
+      )
+    );
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
+  const agregarHorario = () => {
+    setHorarios((currentHorarios) => [...currentHorarios, crearHorarioVacio()]);
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
+  const quitarHorario = (index) => {
+    setHorarios((currentHorarios) =>
+      currentHorarios.length === 1
+        ? [crearHorarioVacio()]
+        : currentHorarios.filter((_, currentIndex) => currentIndex !== index)
+    );
+    clearFieldError("horarios");
+    setSubmitError("");
+  };
+
   const validarFormulario = () => {
     const nuevosErrores = {};
 
@@ -266,6 +299,11 @@ export default function RegistrarProfesional() {
       nuevosErrores.codigo_postal = "Ingresa un codigo postal valido.";
     }
 
+    const horariosError = getHorariosError(horarios);
+    if (horariosError) {
+      nuevosErrores.horarios = horariosError;
+    }
+
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -298,6 +336,7 @@ export default function RegistrarProfesional() {
         provincia_nombre: form.provincia_nombre || null,
         localidad_nombre: form.localidad_nombre || null,
         foto_url: form.foto_url.trim() || null,
+        horarios: prepararHorariosPayload(horarios),
       };
 
       const response = await fetch(`${apiUrl}/profesionales`, {
@@ -645,6 +684,72 @@ export default function RegistrarProfesional() {
                 </div>
                 {errors.foto_url ? <span className="field-error">{errors.foto_url}</span> : null}
               </div>
+            </div>
+          </section>
+
+          <section className="registro-section">
+            <div className="section-heading">
+              <h2>Horarios de atencion</h2>
+              <p>Define los dias y rangos en los que el profesional estara disponible.</p>
+            </div>
+
+            <div className="horarios-editor">
+              {horarios.map((horario, index) => (
+                <div className="horario-row" key={`${horario.dia}-${index}`}>
+                  <div className="field">
+                    <label htmlFor={`horario-dia-${index}`}>Dia</label>
+                    <select
+                      id={`horario-dia-${index}`}
+                      value={horario.dia}
+                      onChange={(event) => handleHorarioChange(index, "dia", event.target.value)}
+                    >
+                      {diasSemana.map((dia) => (
+                        <option key={dia} value={dia}>
+                          {dia.charAt(0).toUpperCase() + dia.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`horario-inicio-${index}`}>Desde</label>
+                    <input
+                      id={`horario-inicio-${index}`}
+                      type="time"
+                      value={horario.hora_inicio}
+                      onChange={(event) =>
+                        handleHorarioChange(index, "hora_inicio", event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor={`horario-fin-${index}`}>Hasta</label>
+                    <input
+                      id={`horario-fin-${index}`}
+                      type="time"
+                      value={horario.hora_fin}
+                      onChange={(event) =>
+                        handleHorarioChange(index, "hora_fin", event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-secondary horario-remove"
+                    onClick={() => quitarHorario(index)}
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+
+              {errors.horarios ? <span className="field-error">{errors.horarios}</span> : null}
+
+              <button type="button" className="btn-secondary horario-add" onClick={agregarHorario}>
+                + Agregar horario
+              </button>
             </div>
           </section>
 
