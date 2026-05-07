@@ -80,9 +80,7 @@ const validarDatosTurno = async (data, turnoId = null) => {
     throw new Error('El horario seleccionado no corresponde con los horarios definidos para el profesional.');
   }
 
-  const excludeTurno = turnoId ? 'AND id <> $7' : '';
-  const paramsBase = [fecha, horaInicio, horaFin, profesional_id, paciente_id, consultorio_id];
-  const params = turnoId ? [...paramsBase, turnoId] : paramsBase;
+  const excludeTurno = turnoId ? 'AND id <> $5' : '';
 
   const conflictoProfesional = await pool.query(
     `SELECT 1 FROM turnos
@@ -93,7 +91,9 @@ const validarDatosTurno = async (data, turnoId = null) => {
        AND hora_inicio < $3::time
        AND $2::time < hora_fin
      LIMIT 1`,
-    params
+    turnoId
+      ? [fecha, horaInicio, horaFin, profesional_id, turnoId]
+      : [fecha, horaInicio, horaFin, profesional_id]
   );
 
   if (conflictoProfesional.rows.length > 0) {
@@ -105,11 +105,13 @@ const validarDatosTurno = async (data, turnoId = null) => {
      WHERE fecha=$1
        AND estado <> 'cancelado'
        ${excludeTurno}
-       AND paciente_id=$5
+       AND paciente_id=$4
        AND hora_inicio < $3::time
        AND $2::time < hora_fin
      LIMIT 1`,
-    params
+    turnoId
+      ? [fecha, horaInicio, horaFin, paciente_id, turnoId]
+      : [fecha, horaInicio, horaFin, paciente_id]
   );
 
   if (conflictoPaciente.rows.length > 0) {
@@ -121,11 +123,13 @@ const validarDatosTurno = async (data, turnoId = null) => {
      WHERE fecha=$1
        AND estado <> 'cancelado'
        ${excludeTurno}
-       AND consultorio_id=$6
+       AND consultorio_id=$4
        AND hora_inicio < $3::time
        AND $2::time < hora_fin
      LIMIT 1`,
-    params
+    turnoId
+      ? [fecha, horaInicio, horaFin, consultorio_id, turnoId]
+      : [fecha, horaInicio, horaFin, consultorio_id]
   );
 
   if (conflictoConsultorio.rows.length > 0) {
