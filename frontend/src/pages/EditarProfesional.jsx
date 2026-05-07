@@ -11,6 +11,8 @@ const initialForm = {
   apellido: "",
   sexo: "",
   cuil: "",
+  matricula: "",
+  especialidad_id: "",
   email: "",
   telefono: "",
   calle: "",
@@ -33,12 +35,35 @@ export default function EditarProfesional() {
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
   const [loadingProvincias, setLoadingProvincias] = useState(true);
   const [loadingLocalidades, setLoadingLocalidades] = useState(false);
+  const [loadingEspecialidades, setLoadingEspecialidades] = useState(true);
   const [loadingProfesional, setLoadingProfesional] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const cargarEspecialidades = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/especialidades`);
+
+        if (!response.ok) {
+          throw new Error("No se pudieron cargar las especialidades");
+        }
+
+        const data = await response.json();
+        setEspecialidades(data);
+      } catch {
+        setSubmitError("No se pudieron cargar las especialidades.");
+      } finally {
+        setLoadingEspecialidades(false);
+      }
+    };
+
+    cargarEspecialidades();
+  }, [apiUrl]);
 
   useEffect(() => {
     const cargarProvincias = async () => {
@@ -86,6 +111,8 @@ export default function EditarProfesional() {
         apellido: profesional.apellido ?? "",
         sexo: profesional.sexo ?? "",
         cuil: profesional.cuil ?? "",
+        matricula: profesional.matricula ?? "",
+        especialidad_id: profesional.especialidad_id ? String(profesional.especialidad_id) : "",
         email: profesional.email ?? "",
         telefono: profesional.telefono ?? "",
         calle: profesional.calle ?? "",
@@ -271,6 +298,16 @@ export default function EditarProfesional() {
       nuevosErrores.cuil = "El CUIL debe tener 11 digitos.";
     }
 
+    if (!form.matricula.trim()) {
+      nuevosErrores.matricula = "La matricula es obligatoria.";
+    } else if (!/^[A-Za-z0-9 -]{3,50}$/.test(form.matricula.trim())) {
+      nuevosErrores.matricula = "Ingresa una matricula valida.";
+    }
+
+    if (!form.especialidad_id) {
+      nuevosErrores.especialidad_id = "Selecciona una especialidad.";
+    }
+
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       nuevosErrores.email = "Ingresa un email valido.";
     }
@@ -307,6 +344,8 @@ export default function EditarProfesional() {
         apellido: form.apellido.trim(),
         sexo: form.sexo,
         cuil: form.cuil.trim(),
+        matricula: form.matricula.trim(),
+        especialidad_id: Number(form.especialidad_id),
         email: form.email.trim() || null,
         telefono: form.telefono.trim() || null,
         calle: form.calle.trim() || null,
@@ -353,6 +392,8 @@ export default function EditarProfesional() {
     ...form,
     email: form.email.trim(),
     telefono: form.telefono.trim(),
+    matricula: form.matricula.trim(),
+    especialidad_id: form.especialidad_id,
     calle: form.calle.trim(),
     numero: form.numero.trim(),
     codigo_postal: form.codigo_postal.trim(),
@@ -362,7 +403,7 @@ export default function EditarProfesional() {
   });
   const isDirty = formSnapshot !== initialSnapshot;
   const canSubmit =
-    !guardando && !loadingProfesional && !loadingProvincias && !loadError && isDirty;
+    !guardando && !loadingProfesional && !loadingProvincias && !loadingEspecialidades && !loadError && isDirty;
 
   return (
     <div className="registro-paciente-page">
@@ -512,6 +553,47 @@ export default function EditarProfesional() {
                     <option value="X">No binario / X</option>
                   </select>
                   {errors.sexo ? <span className="field-error">{errors.sexo}</span> : null}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="matricula">Matricula</label>
+                  <input
+                    id="matricula"
+                    name="matricula"
+                    type="text"
+                    value={form.matricula}
+                    onChange={handleChange}
+                    placeholder="MP 12345"
+                    className={errors.matricula ? "input-error" : ""}
+                    disabled={guardando}
+                  />
+                  {errors.matricula ? (
+                    <span className="field-error">{errors.matricula}</span>
+                  ) : null}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="especialidad_id">Especialidad</label>
+                  <select
+                    id="especialidad_id"
+                    name="especialidad_id"
+                    value={form.especialidad_id}
+                    onChange={handleChange}
+                    className={errors.especialidad_id ? "input-error" : ""}
+                    disabled={loadingEspecialidades || guardando}
+                  >
+                    <option value="">
+                      {loadingEspecialidades ? "Cargando especialidades..." : "Selecciona una especialidad"}
+                    </option>
+                    {especialidades.map((especialidad) => (
+                      <option key={especialidad.id} value={especialidad.id}>
+                        {especialidad.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.especialidad_id ? (
+                    <span className="field-error">{errors.especialidad_id}</span>
+                  ) : null}
                 </div>
               </div>
             </section>

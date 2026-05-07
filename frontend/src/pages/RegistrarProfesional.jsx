@@ -11,6 +11,8 @@ const initialForm = {
   apellido: "",
   sexo: "",
   cuil: "",
+  matricula: "",
+  especialidad_id: "",
   email: "",
   telefono: "",
   calle: "",
@@ -30,10 +32,33 @@ export default function RegistrarProfesional() {
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
   const [loadingProvincias, setLoadingProvincias] = useState(true);
   const [loadingLocalidades, setLoadingLocalidades] = useState(false);
+  const [loadingEspecialidades, setLoadingEspecialidades] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    const cargarEspecialidades = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/especialidades`);
+
+        if (!response.ok) {
+          throw new Error("No se pudieron cargar las especialidades");
+        }
+
+        const data = await response.json();
+        setEspecialidades(data);
+      } catch {
+        setSubmitError("No se pudieron cargar las especialidades.");
+      } finally {
+        setLoadingEspecialidades(false);
+      }
+    };
+
+    cargarEspecialidades();
+  }, [apiUrl]);
 
   useEffect(() => {
     const cargarProvincias = async () => {
@@ -215,6 +240,16 @@ export default function RegistrarProfesional() {
       nuevosErrores.cuil = "El CUIL debe tener 11 digitos.";
     }
 
+    if (!form.matricula.trim()) {
+      nuevosErrores.matricula = "La matricula es obligatoria.";
+    } else if (!/^[A-Za-z0-9 -]{3,50}$/.test(form.matricula.trim())) {
+      nuevosErrores.matricula = "Ingresa una matricula valida.";
+    }
+
+    if (!form.especialidad_id) {
+      nuevosErrores.especialidad_id = "Selecciona una especialidad.";
+    }
+
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       nuevosErrores.email = "Ingresa un email valido.";
     }
@@ -251,6 +286,8 @@ export default function RegistrarProfesional() {
         apellido: form.apellido.trim(),
         sexo: form.sexo,
         cuil: form.cuil.trim(),
+        matricula: form.matricula.trim(),
+        especialidad_id: Number(form.especialidad_id),
         email: form.email.trim() || null,
         telefono: form.telefono.trim() || null,
         calle: form.calle.trim() || null,
@@ -366,6 +403,46 @@ export default function RegistrarProfesional() {
                   <option value="X">No binario / X</option>
                 </select>
                 {errors.sexo ? <span className="field-error">{errors.sexo}</span> : null}
+              </div>
+
+              <div className="field">
+                <label htmlFor="matricula">Matricula</label>
+                <input
+                  id="matricula"
+                  name="matricula"
+                  type="text"
+                  value={form.matricula}
+                  onChange={handleChange}
+                  placeholder="MP 12345"
+                  className={errors.matricula ? "input-error" : ""}
+                />
+                {errors.matricula ? (
+                  <span className="field-error">{errors.matricula}</span>
+                ) : null}
+              </div>
+
+              <div className="field">
+                <label htmlFor="especialidad_id">Especialidad</label>
+                <select
+                  id="especialidad_id"
+                  name="especialidad_id"
+                  value={form.especialidad_id}
+                  onChange={handleChange}
+                  className={errors.especialidad_id ? "input-error" : ""}
+                  disabled={loadingEspecialidades}
+                >
+                  <option value="">
+                    {loadingEspecialidades ? "Cargando especialidades..." : "Selecciona una especialidad"}
+                  </option>
+                  {especialidades.map((especialidad) => (
+                    <option key={especialidad.id} value={especialidad.id}>
+                      {especialidad.nombre}
+                    </option>
+                  ))}
+                </select>
+                {errors.especialidad_id ? (
+                  <span className="field-error">{errors.especialidad_id}</span>
+                ) : null}
               </div>
             </div>
           </section>

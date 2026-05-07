@@ -24,7 +24,7 @@ body {
 
 .profesional-page {
   width: 100%;
-  max-width: 1126px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 32px;
   text-align: left;
@@ -156,6 +156,101 @@ body {
 .profesional-code {
   font-size: 13px;
   color: var(--text-light);
+}
+
+.profesional-specialty {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.profesional-content {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.profesional-sidebar {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.profesional-sidebar-header {
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profesional-sidebar-header h2 {
+  font-size: 16px;
+  color: var(--text-dark);
+}
+
+.profesional-sidebar-header p {
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+.especialidad-filter {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dark);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.especialidad-filter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.especialidad-filter strong {
+  min-width: 26px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: var(--text-light);
+  font-size: 12px;
+  text-align: center;
+}
+
+.especialidad-filter:hover,
+.especialidad-filter.active {
+  border-color: rgba(37, 99, 235, 0.18);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary-dark);
+}
+
+.especialidad-filter.active strong {
+  background: var(--primary);
+  color: var(--white);
 }
 
 .profesional-detalles {
@@ -373,6 +468,19 @@ body {
 }
 
 @media (max-width: 1200px) {
+  .profesional-content {
+    grid-template-columns: 1fr;
+  }
+
+  .profesional-sidebar {
+    position: static;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .profesional-sidebar-header {
+    grid-column: 1 / -1;
+  }
+
   .profesional-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -400,6 +508,10 @@ body {
 
   .profesional-filters .search-box {
     max-width: 100%;
+  }
+
+  .profesional-sidebar {
+    grid-template-columns: 1fr;
   }
 
   .profesional-grid {

@@ -4,7 +4,9 @@ import "../styles/Profesional.css";
 
 export default function Profesional() {
   const [busqueda, setBusqueda] = useState("");
+  const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("todas");
   const [profesionales, setProfesionales] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
   const [profesionalSeleccionado, setProfesionalSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,9 +15,22 @@ export default function Profesional() {
   useEffect(() => {
     const cargarProfesionales = async () => {
       try {
-        const response = await fetch(`${apiUrl}/profesionales`);
-        const data = await response.json();
-        setProfesionales(data);
+        const [profesionalesResponse, especialidadesResponse] = await Promise.all([
+          fetch(`${apiUrl}/profesionales`),
+          fetch(`${apiUrl}/especialidades`),
+        ]);
+
+        if (!profesionalesResponse.ok || !especialidadesResponse.ok) {
+          throw new Error("No se pudieron cargar los profesionales");
+        }
+
+        const [profesionalesData, especialidadesData] = await Promise.all([
+          profesionalesResponse.json(),
+          especialidadesResponse.json(),
+        ]);
+
+        setProfesionales(profesionalesData);
+        setEspecialidades(especialidadesData);
       } catch {
         setError("Error al cargar profesionales");
       } finally {
@@ -41,8 +56,21 @@ export default function Profesional() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [profesionalSeleccionado]);
 
+  const getEspecialidadNombre = (prof) =>
+    prof.especialidad_nombre ||
+    especialidades.find((especialidad) => String(especialidad.id) === String(prof.especialidad_id))
+      ?.nombre ||
+    "Sin especialidad";
+
   const profesionalesFiltrados = profesionales.filter((prof) => {
     const termino = busqueda.trim().toLowerCase();
+    const coincideEspecialidad =
+      especialidadSeleccionada === "todas" ||
+      String(prof.especialidad_id) === String(especialidadSeleccionada);
+
+    if (!coincideEspecialidad) {
+      return false;
+    }
 
     if (!termino) {
       return true;
@@ -51,12 +79,16 @@ export default function Profesional() {
     const nombre = String(prof.nombre ?? "").toLowerCase();
     const apellido = String(prof.apellido ?? "").toLowerCase();
     const cuil = String(prof.cuil ?? "").toLowerCase();
+    const matricula = String(prof.matricula ?? "").toLowerCase();
+    const especialidad = getEspecialidadNombre(prof).toLowerCase();
     const nombreCompleto = `${nombre} ${apellido}`.trim();
 
     return (
       nombre.includes(termino) ||
       apellido.includes(termino) ||
       cuil.includes(termino) ||
+      matricula.includes(termino) ||
+      especialidad.includes(termino) ||
       nombreCompleto.includes(termino)
     );
   });
@@ -101,71 +133,110 @@ export default function Profesional() {
           <div className="search-box">
             <input
               type="text"
-              placeholder="Buscar por CUIL, nombre o apellido..."
+              placeholder="Buscar por CUIL, matricula, especialidad, nombre o apellido..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="profesional-grid">
-          {profesionalesFiltrados.length > 0 ? (
-            profesionalesFiltrados.map((prof) => (
-              <div key={prof.id} className="profesional-card">
-                <div className="profesional-header-card">
-                  <div className="profesional-avatar">
-                    {prof.foto_url ? (
-                      <img src={prof.foto_url} alt={`Foto de ${prof.nombre} ${prof.apellido}`} />
-                    ) : (
-                      getIniciales(prof)
-                    )}
-                  </div>
-                  <div className="profesional-nombre">
-                    <h3>
-                      {prof.nombre} {prof.apellido}
-                    </h3>
-                    <span className="profesional-code">CUIL: {prof.cuil || "Sin dato"}</span>
-                  </div>
-                </div>
-
-                <div className="profesional-detalles">
-                  <div className="detalle-item">
-                    <span className="label">Telefono</span>
-                    <span className="value">{prof.telefono || "Sin dato"}</span>
-                  </div>
-                  <div className="detalle-item">
-                    <span className="label">Email</span>
-                    <span className="value">{prof.email || "Sin dato"}</span>
-                  </div>
-                  <div className="detalle-item">
-                    <span className="label">Sexo</span>
-                    <span className="value">{prof.sexo || "Sin dato"}</span>
-                  </div>
-                  <div className="detalle-item">
-                    <span className="label">Provincia</span>
-                    <span className="value">{prof.provincia_nombre || "Sin dato"}</span>
-                  </div>
-                </div>
-
-                <div className="profesional-actions">
-                  <button
-                    type="button"
-                    className="btn-ver"
-                    onClick={() => setProfesionalSeleccionado(prof)}
-                  >
-                    Ver
-                  </button>
-                  <Link to={`/profesional/${prof.id}/editar`} className="btn-editar">
-                    Editar
-                  </Link>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="no-results">
-              <p>No se encontraron profesionales</p>
+        <div className="profesional-content">
+          <aside className="profesional-sidebar">
+            <div className="profesional-sidebar-header">
+              <h2>Especialidades</h2>
+              <p>Filtra el listado</p>
             </div>
-          )}
+            <button
+              type="button"
+              className={`especialidad-filter ${
+                especialidadSeleccionada === "todas" ? "active" : ""
+              }`}
+              onClick={() => setEspecialidadSeleccionada("todas")}
+            >
+              <span>Todas</span>
+              <strong>{profesionales.length}</strong>
+            </button>
+            {especialidades.map((especialidad) => {
+              const total = profesionales.filter(
+                (prof) => String(prof.especialidad_id) === String(especialidad.id)
+              ).length;
+
+              return (
+                <button
+                  key={especialidad.id}
+                  type="button"
+                  className={`especialidad-filter ${
+                    String(especialidadSeleccionada) === String(especialidad.id) ? "active" : ""
+                  }`}
+                  onClick={() => setEspecialidadSeleccionada(String(especialidad.id))}
+                >
+                  <span>{especialidad.nombre}</span>
+                  <strong>{total}</strong>
+                </button>
+              );
+            })}
+          </aside>
+
+          <div className="profesional-grid">
+            {profesionalesFiltrados.length > 0 ? (
+              profesionalesFiltrados.map((prof) => (
+                <div key={prof.id} className="profesional-card">
+                  <div className="profesional-header-card">
+                    <div className="profesional-avatar">
+                      {prof.foto_url ? (
+                        <img src={prof.foto_url} alt={`Foto de ${prof.nombre} ${prof.apellido}`} />
+                      ) : (
+                        getIniciales(prof)
+                      )}
+                    </div>
+                    <div className="profesional-nombre">
+                      <h3>
+                        {prof.nombre} {prof.apellido}
+                      </h3>
+                      <span className="profesional-code">CUIL: {prof.cuil || "Sin dato"}</span>
+                      <span className="profesional-specialty">{getEspecialidadNombre(prof)}</span>
+                    </div>
+                  </div>
+
+                  <div className="profesional-detalles">
+                    <div className="detalle-item">
+                      <span className="label">Telefono</span>
+                      <span className="value">{prof.telefono || "Sin dato"}</span>
+                    </div>
+                    <div className="detalle-item">
+                      <span className="label">Email</span>
+                      <span className="value">{prof.email || "Sin dato"}</span>
+                    </div>
+                    <div className="detalle-item">
+                      <span className="label">Matricula</span>
+                      <span className="value">{prof.matricula || "Sin dato"}</span>
+                    </div>
+                    <div className="detalle-item">
+                      <span className="label">Especialidad</span>
+                      <span className="value">{getEspecialidadNombre(prof)}</span>
+                    </div>
+                  </div>
+
+                  <div className="profesional-actions">
+                    <button
+                      type="button"
+                      className="btn-ver"
+                      onClick={() => setProfesionalSeleccionado(prof)}
+                    >
+                      Ver
+                    </button>
+                    <Link to={`/profesional/${prof.id}/editar`} className="btn-editar">
+                      Editar
+                    </Link>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-results">
+                <p>No se encontraron profesionales</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -223,6 +294,14 @@ export default function Profesional() {
               <div className="profesional-modal-item">
                 <span className="label">CUIL</span>
                 <span className="value">{profesionalSeleccionado.cuil || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Matricula</span>
+                <span className="value">{profesionalSeleccionado.matricula || "Sin dato"}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Especialidad</span>
+                <span className="value">{getEspecialidadNombre(profesionalSeleccionado)}</span>
               </div>
               <div className="profesional-modal-item">
                 <span className="label">Sexo</span>

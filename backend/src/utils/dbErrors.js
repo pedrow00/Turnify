@@ -3,6 +3,10 @@ const uniqueConstraintMessages = {
     create: 'No se pudo registrar porque el CUIL ya esta asignado a otro profesional.',
     update: 'No se pudo actualizar porque el CUIL ya esta asignado a otro profesional.',
   },
+  profesionales_matricula_key: {
+    create: 'No se pudo registrar porque la matricula ya esta asignada a otro profesional.',
+    update: 'No se pudo actualizar porque la matricula ya esta asignada a otro profesional.',
+  },
   pacientes_dni_key: {
     create: 'No se pudo registrar porque el DNI ya esta asignado a otro paciente.',
     update: 'No se pudo actualizar porque el DNI ya esta asignado a otro paciente.',
