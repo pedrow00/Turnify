@@ -18,7 +18,8 @@ const initialForm = {
 };
 
 const estadosTurno = ["confirmado", "pendiente", "cancelado", "finalizado"];
-const duraciones = [15, 30, 45, 60, 90, 120];
+const DURACION_TURNO_MINUTOS = 15;
+const diasPorIndice = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
 const padTime = (value) => String(value).padStart(2, "0");
 
@@ -45,6 +46,31 @@ const normalizeDate = (date) => {
   return dateToInputValue(date);
 };
 
+const todayInputValue = () => dateToInputValue(new Date());
+
+const getDiaSemana = (dateValue) => {
+  if (!dateValue) return "";
+  return diasPorIndice[new Date(`${dateValue}T12:00:00`).getDay()];
+};
+
+const isWeekend = (dateValue) => {
+  const dia = getDiaSemana(dateValue);
+  return dia === "sabado" || dia === "domingo";
+};
+
+const isPastDate = (dateValue) => Boolean(dateValue) && dateValue < todayInputValue();
+
+const rangesOverlap = (inicioA, finA, inicioB, finB) =>
+  toMinutes(inicioA) < toMinutes(finB) && toMinutes(inicioB) < toMinutes(finA);
+
+const openDatePicker = (event) => {
+  try {
+    event.currentTarget.showPicker?.();
+  } catch {
+    // El navegador puede bloquear showPicker fuera de una accion directa del usuario.
+  }
+};
+
 const getNombreCompleto = (persona) =>
   `${persona?.nombre ?? ""} ${persona?.apellido ?? ""}`.trim() || "Sin nombre";
 
@@ -60,7 +86,7 @@ const sortByName = (items) =>
 const buildPayload = (form) => ({
   fecha: form.fecha,
   hora_inicio: form.hora_inicio,
-  hora_fin: form.hora_fin,
+  hora_fin: fromMinutes(toMinutes(form.hora_inicio) + DURACION_TURNO_MINUTOS),
   paciente_id: Number(form.paciente_id),
   profesional_id: Number(form.profesional_id),
   consultorio_id: Number(form.consultorio_id),
@@ -80,7 +106,6 @@ export default function Turno() {
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
-  const [duracion, setDuracion] = useState(60);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -109,7 +134,7 @@ export default function Turno() {
       const [turnosData, pacientesData, profesionalesData, consultoriosData, especialidadesData] =
         await Promise.all(responses.map((response) => response.json()));
 
-      setTurnos(turnosData);
+      setTurnos(turnosData.filter((turno) => normalizeDate(turno.fecha) >= todayInputValue()));
       setPacientes(sortByName(pacientesData));
       setProfesionales(sortByName(profesionalesData));
       setConsultorios(consultoriosData);
@@ -173,56 +198,137 @@ export default function Turno() {
     [form.fecha, turnos]
   );
 
-  const horariosOcupadosProfesional = useMemo(
+  const fechaHabilitada = Boolean(form.fecha) && !isPastDate(form.fecha) && !isWeekend(form.fecha);
+  const pacienteHabilitado = fechaHabilitada && Boolean(form.paciente_id);
+  const especialidadHabilitada = pacienteHabilitado && Boolean(form.especialidad_id);
+  const profesionalHabilitado = especialidadHabilitada && Boolean(form.profesional_id);
+  const consultorioHabilitado = profesionalHabilitado && Boolean(form.consultorio_id);
+  const horarioHabilitado = consultorioHabilitado && Boolean(form.hora_inicio);
+  const estadoHabilitado = horarioHabilitado && Boolean(form.estado);
+  const puedeGuardar = estadoHabilitado && Boolean(form.motivo_consulta.trim()) && !guardando;
+
+  const profesionalesFiltrados = useMemo(
+    () =>
+      profesionales.filter(
+        (profesional) => String(profesional.especialidad_id) === String(form.especialidad_id)
+      ),
+    [form.especialidad_id, profesionales]
+  );
+
+  const consultoriosFiltrados = useMemo(
+    () =>
+      consultorios.filter((consultorio) => {
+        if (consultorio.activo === false) return false;
+        if (!form.especialidad_id) return false;
+        if (!Array.isArray(consultorio.especialidades)) return true;
+
+        return consultorio.especialidades.some(
+          (especialidad) => String(especialidad.id) === String(form.especialidad_id)
+        );
+      }),
+    [consultorios, form.especialidad_id]
+  );
+
+  const profesionalSeleccionado = useMemo(
+    () => profesionales.find((profesional) => String(profesional.id) === String(form.profesional_id)),
+    [form.profesional_id, profesionales]
+  );
+
+  const horariosLaboralesProfesional = useMemo(() => {
+    if (!form.fecha || !profesionalSeleccionado?.horarios?.length) return [];
+
+    const diaSemana = getDiaSemana(form.fecha);
+
+    return profesionalSeleccionado.horarios.filter(
+      (horario) => horario.activo !== false && String(horario.dia).toLowerCase() === diaSemana
+    );
+  }, [form.fecha, profesionalSeleccionado]);
+
+  const turnosOcupadosProfesional = useMemo(
     () =>
       turnosDelDia
         .filter(
           (turno) =>
             String(turno.profesional_id) === String(form.profesional_id) &&
+            turno.estado !== "cancelado" &&
             String(turno.id) !== String(turnoSeleccionado?.id)
-        )
-        .map((turno) => normalizeTime(turno.hora_inicio)),
+        ),
     [form.profesional_id, turnoSeleccionado?.id, turnosDelDia]
   );
 
-  const horariosOcupadosConsultorio = useMemo(
+  const turnosOcupadosPaciente = useMemo(
+    () =>
+      turnosDelDia.filter(
+        (turno) =>
+          String(turno.paciente_id) === String(form.paciente_id) &&
+          turno.estado !== "cancelado" &&
+          String(turno.id) !== String(turnoSeleccionado?.id)
+      ),
+    [form.paciente_id, turnoSeleccionado?.id, turnosDelDia]
+  );
+
+  const turnosOcupadosConsultorio = useMemo(
     () =>
       turnosDelDia
         .filter(
           (turno) =>
             String(turno.consultorio_id) === String(form.consultorio_id) &&
+            turno.estado !== "cancelado" &&
             String(turno.id) !== String(turnoSeleccionado?.id)
-        )
-        .map((turno) => normalizeTime(turno.hora_inicio)),
+        ),
     [form.consultorio_id, turnoSeleccionado?.id, turnosDelDia]
   );
 
   const horariosDisponibles = useMemo(() => {
-    const inicioJornada = 8 * 60;
-    const finJornada = 20 * 60;
     const step = 15;
     const slots = [];
 
-    for (let minutes = inicioJornada; minutes + Number(duracion) <= finJornada; minutes += step) {
-      const inicio = fromMinutes(minutes);
-      const fin = fromMinutes(minutes + Number(duracion));
-      const ocupadoProfesional = horariosOcupadosProfesional.includes(inicio);
-      const ocupadoConsultorio = horariosOcupadosConsultorio.includes(inicio);
+    if (!form.fecha || isWeekend(form.fecha) || isPastDate(form.fecha)) return slots;
 
-      slots.push({
-        inicio,
-        fin,
-        disponible: !ocupadoProfesional && !ocupadoConsultorio,
-        motivo: ocupadoProfesional
-          ? "Profesional ocupado"
-          : ocupadoConsultorio
-            ? "Consultorio ocupado"
-            : "Disponible",
-      });
+    for (const horario of horariosLaboralesProfesional) {
+      const inicioJornada = toMinutes(horario.hora_inicio);
+      const finJornada = toMinutes(horario.hora_fin);
+
+      for (
+        let minutes = inicioJornada;
+        minutes + DURACION_TURNO_MINUTOS <= finJornada;
+        minutes += step
+      ) {
+        const inicio = fromMinutes(minutes);
+        const fin = fromMinutes(minutes + DURACION_TURNO_MINUTOS);
+        const ocupadoProfesional = turnosOcupadosProfesional.some((turno) =>
+          rangesOverlap(inicio, fin, normalizeTime(turno.hora_inicio), normalizeTime(turno.hora_fin))
+        );
+        const ocupadoPaciente = turnosOcupadosPaciente.some((turno) =>
+          rangesOverlap(inicio, fin, normalizeTime(turno.hora_inicio), normalizeTime(turno.hora_fin))
+        );
+        const ocupadoConsultorio = turnosOcupadosConsultorio.some((turno) =>
+          rangesOverlap(inicio, fin, normalizeTime(turno.hora_inicio), normalizeTime(turno.hora_fin))
+        );
+
+        slots.push({
+          inicio,
+          fin,
+          disponible: !ocupadoProfesional && !ocupadoPaciente && !ocupadoConsultorio,
+          motivo: ocupadoProfesional
+            ? "Profesional ocupado"
+            : ocupadoPaciente
+              ? "Paciente ocupado"
+              : ocupadoConsultorio
+                ? "Consultorio ocupado"
+                : "Disponible",
+        });
+      }
     }
 
     return slots;
-  }, [duracion, horariosOcupadosConsultorio, horariosOcupadosProfesional]);
+  }, [
+    form.fecha,
+    horariosLaboralesProfesional,
+    turnosOcupadosConsultorio,
+    turnosOcupadosPaciente,
+    turnosOcupadosProfesional,
+  ]);
 
   const calendarEvents = turnosFiltrados.map((turno) => ({
     id: String(turno.id),
@@ -240,22 +346,53 @@ export default function Turno() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((currentForm) => ({ ...currentForm, [name]: value }));
+    setForm((currentForm) => {
+      const nextForm = { ...currentForm, [name]: value };
+
+      if (name === "hora_inicio" && value) {
+        nextForm.hora_fin = fromMinutes(toMinutes(value) + DURACION_TURNO_MINUTOS);
+      }
+
+      if (name === "fecha") {
+        nextForm.paciente_id = "";
+        nextForm.especialidad_id = "";
+        nextForm.profesional_id = "";
+        nextForm.consultorio_id = "";
+        nextForm.hora_inicio = "";
+        nextForm.hora_fin = "";
+      }
+
+      if (name === "paciente_id") {
+        nextForm.especialidad_id = "";
+        nextForm.profesional_id = "";
+        nextForm.consultorio_id = "";
+        nextForm.hora_inicio = "";
+        nextForm.hora_fin = "";
+      }
+
+      if (name === "especialidad_id") {
+        nextForm.profesional_id = "";
+        nextForm.consultorio_id = "";
+        nextForm.hora_inicio = "";
+        nextForm.hora_fin = "";
+      }
+
+      if (name === "profesional_id") {
+        nextForm.consultorio_id = "";
+        nextForm.hora_inicio = "";
+        nextForm.hora_fin = "";
+      }
+
+      if (name === "consultorio_id") {
+        nextForm.hora_inicio = "";
+        nextForm.hora_fin = "";
+      }
+
+      return nextForm;
+    });
     clearFieldError(name);
     setSubmitError("");
     setMensaje("");
-  };
-
-  const handleDuracionChange = (event) => {
-    const nextDuracion = Number(event.target.value);
-    setDuracion(nextDuracion);
-
-    if (form.hora_inicio) {
-      setForm((currentForm) => ({
-        ...currentForm,
-        hora_fin: fromMinutes(toMinutes(currentForm.hora_inicio) + nextDuracion),
-      }));
-    }
   };
 
   const seleccionarHorario = (slot) => {
@@ -279,7 +416,6 @@ export default function Turno() {
       hora_inicio: "",
       hora_fin: "",
     });
-    setDuracion(60);
     setErrors({});
     setSubmitError("");
     setMensaje("");
@@ -301,7 +437,6 @@ export default function Turno() {
       estado: turno.estado || "confirmado",
       motivo_consulta: turno.motivo_consulta ?? "",
     });
-    setDuracion(Math.max(15, toMinutes(fin) - toMinutes(inicio)));
     setErrors({});
     setSubmitError("");
     setMensaje("");
@@ -318,23 +453,39 @@ export default function Turno() {
     const nuevosErrores = {};
 
     if (!form.fecha) nuevosErrores.fecha = "Selecciona la fecha del turno.";
+    if (form.fecha && isPastDate(form.fecha)) {
+      nuevosErrores.fecha = "No se pueden elegir fechas pasadas.";
+    }
+    if (form.fecha && isWeekend(form.fecha)) {
+      nuevosErrores.fecha = "No se pueden elegir sabados ni domingos.";
+    }
     if (!form.paciente_id) nuevosErrores.paciente_id = "Selecciona un paciente.";
     if (!form.profesional_id) nuevosErrores.profesional_id = "Selecciona un profesional.";
     if (!form.consultorio_id) nuevosErrores.consultorio_id = "Selecciona un consultorio.";
     if (!form.especialidad_id) nuevosErrores.especialidad_id = "Selecciona una especialidad.";
     if (!form.hora_inicio) nuevosErrores.hora_inicio = "Selecciona un horario disponible.";
-    if (!form.hora_fin) nuevosErrores.hora_fin = "Indica la hora de finalizacion.";
+    if (!form.hora_fin) nuevosErrores.hora_fin = "El fin se calcula automaticamente.";
+    if (!form.motivo_consulta.trim()) nuevosErrores.motivo_consulta = "Indica el motivo de consulta.";
 
-    if (form.hora_inicio && form.hora_fin && toMinutes(form.hora_fin) <= toMinutes(form.hora_inicio)) {
-      nuevosErrores.hora_fin = "La hora de finalizacion debe ser posterior al inicio.";
+    if (form.hora_inicio) {
+      const finCalculado = fromMinutes(toMinutes(form.hora_inicio) + DURACION_TURNO_MINUTOS);
+      if (form.hora_fin !== finCalculado) {
+        nuevosErrores.hora_fin = "La duracion del turno debe ser de 15 minutos.";
+      }
     }
 
-    if (form.hora_inicio && horariosOcupadosProfesional.includes(form.hora_inicio)) {
-      nuevosErrores.hora_inicio = "El profesional ya tiene un turno en ese horario.";
+    if (form.fecha && form.profesional_id && horariosLaboralesProfesional.length === 0) {
+      nuevosErrores.hora_inicio = "El profesional no atiende en esa fecha.";
     }
 
-    if (form.hora_inicio && horariosOcupadosConsultorio.includes(form.hora_inicio)) {
-      nuevosErrores.hora_inicio = "El consultorio ya esta ocupado en ese horario.";
+    if (form.hora_inicio) {
+      const slotSeleccionado = horariosDisponibles.find((slot) => slot.inicio === form.hora_inicio);
+
+      if (!slotSeleccionado) {
+        nuevosErrores.hora_inicio = "Selecciona un horario dentro de la agenda del profesional.";
+      } else if (!slotSeleccionado.disponible) {
+        nuevosErrores.hora_inicio = slotSeleccionado.motivo;
+      }
     }
 
     setErrors(nuevosErrores);
@@ -494,8 +645,13 @@ export default function Turno() {
               }}
               selectable
               nowIndicator
+              hiddenDays={[0, 6]}
               events={calendarEvents}
-              dateClick={(info) => abrirNuevoTurno(dateToInputValue(info.date))}
+              dateClick={(info) => {
+                const fecha = dateToInputValue(info.date);
+                if (isWeekend(fecha) || isPastDate(fecha)) return;
+                abrirNuevoTurno(fecha);
+              }}
               eventClick={(info) => abrirEditarTurno(info.event.extendedProps.turno)}
             />
           </div>
@@ -550,8 +706,11 @@ export default function Turno() {
                 id="fecha"
                 name="fecha"
                 type="date"
+                min={todayInputValue()}
                 value={form.fecha}
                 onChange={handleChange}
+                onClick={openDatePicker}
+                onFocus={openDatePicker}
                 className={errors.fecha ? "input-error" : ""}
                 disabled={guardando}
               />
@@ -566,7 +725,7 @@ export default function Turno() {
                 value={form.paciente_id}
                 onChange={handleChange}
                 className={errors.paciente_id ? "input-error" : ""}
-                disabled={guardando}
+                disabled={guardando || !fechaHabilitada}
               >
                 <option value="">Selecciona un paciente</option>
                 {pacientes.map((paciente) => (
@@ -579,6 +738,28 @@ export default function Turno() {
             </div>
 
             <div className="field">
+              <label htmlFor="especialidad_id">Especialidad</label>
+              <select
+                id="especialidad_id"
+                name="especialidad_id"
+                value={form.especialidad_id}
+                onChange={handleChange}
+                className={errors.especialidad_id ? "input-error" : ""}
+                disabled={guardando || !pacienteHabilitado}
+              >
+                <option value="">Selecciona una especialidad</option>
+                {especialidades.map((especialidad) => (
+                  <option key={especialidad.id} value={especialidad.id}>
+                    {especialidad.nombre}
+                  </option>
+                ))}
+              </select>
+              {errors.especialidad_id ? (
+                <span className="field-error">{errors.especialidad_id}</span>
+              ) : null}
+            </div>
+
+            <div className="field">
               <label htmlFor="profesional_id">Profesional</label>
               <select
                 id="profesional_id"
@@ -586,10 +767,10 @@ export default function Turno() {
                 value={form.profesional_id}
                 onChange={handleChange}
                 className={errors.profesional_id ? "input-error" : ""}
-                disabled={guardando}
+                disabled={guardando || !especialidadHabilitada}
               >
                 <option value="">Selecciona un profesional</option>
-                {profesionales.map((profesional) => (
+                {profesionalesFiltrados.map((profesional) => (
                   <option key={profesional.id} value={profesional.id}>
                     {getNombreCompleto(profesional)}
                   </option>
@@ -600,63 +781,26 @@ export default function Turno() {
               ) : null}
             </div>
 
-            <div className="turno-form-row">
-              <div className="field">
-                <label htmlFor="consultorio_id">Consultorio</label>
-                <select
-                  id="consultorio_id"
-                  name="consultorio_id"
-                  value={form.consultorio_id}
-                  onChange={handleChange}
-                  className={errors.consultorio_id ? "input-error" : ""}
-                  disabled={guardando}
-                >
-                  <option value="">Selecciona</option>
-                  {consultorios
-                    .filter((consultorio) => consultorio.activo !== false)
-                    .map((consultorio) => (
-                      <option key={consultorio.id} value={consultorio.id}>
-                        {consultorio.numero_consultorio} - Piso {consultorio.piso}
-                      </option>
-                    ))}
-                </select>
-                {errors.consultorio_id ? (
-                  <span className="field-error">{errors.consultorio_id}</span>
-                ) : null}
-              </div>
-
-              <div className="field">
-                <label htmlFor="especialidad_id">Especialidad</label>
-                <select
-                  id="especialidad_id"
-                  name="especialidad_id"
-                  value={form.especialidad_id}
-                  onChange={handleChange}
-                  className={errors.especialidad_id ? "input-error" : ""}
-                  disabled={guardando}
-                >
-                  <option value="">Selecciona</option>
-                  {especialidades.map((especialidad) => (
-                    <option key={especialidad.id} value={especialidad.id}>
-                      {especialidad.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errors.especialidad_id ? (
-                  <span className="field-error">{errors.especialidad_id}</span>
-                ) : null}
-              </div>
-            </div>
-
             <div className="field">
-              <label htmlFor="duracion">Duracion</label>
-              <select id="duracion" value={duracion} onChange={handleDuracionChange} disabled={guardando}>
-                {duraciones.map((minutes) => (
-                  <option key={minutes} value={minutes}>
-                    {minutes} minutos
+              <label htmlFor="consultorio_id">Consultorio</label>
+              <select
+                id="consultorio_id"
+                name="consultorio_id"
+                value={form.consultorio_id}
+                onChange={handleChange}
+                className={errors.consultorio_id ? "input-error" : ""}
+                disabled={guardando || !profesionalHabilitado}
+              >
+                <option value="">Selecciona un consultorio</option>
+                {consultoriosFiltrados.map((consultorio) => (
+                  <option key={consultorio.id} value={consultorio.id}>
+                    {consultorio.numero_consultorio} - Piso {consultorio.piso}
                   </option>
                 ))}
               </select>
+              {errors.consultorio_id ? (
+                <span className="field-error">{errors.consultorio_id}</span>
+              ) : null}
             </div>
 
             <div className="turno-slots">
@@ -668,7 +812,14 @@ export default function Turno() {
                     type="button"
                     className={`turno-slot ${form.hora_inicio === slot.inicio ? "selected" : ""}`}
                     onClick={() => seleccionarHorario(slot)}
-                    disabled={!slot.disponible || !form.fecha || !form.profesional_id || !form.consultorio_id}
+                    disabled={
+                      !slot.disponible ||
+                      !form.fecha ||
+                      !form.profesional_id ||
+                      !form.paciente_id ||
+                      !form.especialidad_id ||
+                      !form.consultorio_id
+                    }
                     title={slot.motivo}
                   >
                     {slot.inicio}
@@ -678,37 +829,15 @@ export default function Turno() {
               {errors.hora_inicio ? <span className="field-error">{errors.hora_inicio}</span> : null}
             </div>
 
-            <div className="turno-form-row">
-              <div className="field">
-                <label htmlFor="hora_inicio">Inicio</label>
-                <input
-                  id="hora_inicio"
-                  name="hora_inicio"
-                  type="time"
-                  value={form.hora_inicio}
-                  onChange={handleChange}
-                  className={errors.hora_inicio ? "input-error" : ""}
-                  disabled={guardando}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="hora_fin">Fin</label>
-                <input
-                  id="hora_fin"
-                  name="hora_fin"
-                  type="time"
-                  value={form.hora_fin}
-                  onChange={handleChange}
-                  className={errors.hora_fin ? "input-error" : ""}
-                  disabled={guardando}
-                />
-                {errors.hora_fin ? <span className="field-error">{errors.hora_fin}</span> : null}
-              </div>
-            </div>
-
             <div className="field">
               <label htmlFor="estado">Estado</label>
-              <select id="estado" name="estado" value={form.estado} onChange={handleChange} disabled={guardando}>
+              <select
+                id="estado"
+                name="estado"
+                value={form.estado}
+                onChange={handleChange}
+                disabled={guardando || !horarioHabilitado}
+              >
                 {estadosTurno.map((estado) => (
                   <option key={estado} value={estado}>
                     {estado}
@@ -725,14 +854,18 @@ export default function Turno() {
                 value={form.motivo_consulta}
                 onChange={handleChange}
                 placeholder="Control, primera consulta, seguimiento..."
-                disabled={guardando}
+                className={errors.motivo_consulta ? "input-error" : ""}
+                disabled={guardando || !estadoHabilitado}
               />
+              {errors.motivo_consulta ? (
+                <span className="field-error">{errors.motivo_consulta}</span>
+              ) : null}
             </div>
 
             {submitError ? <div className="submit-error">{submitError}</div> : null}
 
             <div className="turno-form-actions">
-              <button type="submit" className="btn-primary" disabled={guardando}>
+              <button type="submit" className="btn-primary" disabled={!puedeGuardar}>
                 {guardando ? "Guardando..." : turnoSeleccionado ? "Guardar cambios" : "Crear turno"}
               </button>
               {turnoSeleccionado ? (

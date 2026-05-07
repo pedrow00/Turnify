@@ -1,6 +1,145 @@
 const pool = require('../config/db');
 
-//POST CREAR
+const DURACION_TURNO_MINUTOS = 15;
+
+const normalizeTime = (time) => String(time || '').slice(0, 5);
+
+const toMinutes = (time) => {
+  const [hours, minutes] = normalizeTime(time).split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const fromMinutes = (minutes) => {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mins = String(minutes % 60).padStart(2, '0');
+  return `${hours}:${mins}`;
+};
+
+const getDiaSemana = (fecha) => {
+  const dias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+  return dias[new Date(`${fecha}T12:00:00`).getDay()];
+};
+
+const validarDatosTurno = async (data, turnoId = null) => {
+  const {
+    fecha,
+    hora_inicio,
+    paciente_id,
+    profesional_id,
+    consultorio_id,
+    especialidad_id,
+    estado,
+    motivo_consulta,
+  } = data;
+
+  if (
+    !fecha ||
+    !hora_inicio ||
+    !paciente_id ||
+    !profesional_id ||
+    !consultorio_id ||
+    !especialidad_id ||
+    !estado ||
+    !String(motivo_consulta || '').trim()
+  ) {
+    throw new Error('Faltan datos obligatorios');
+  }
+
+  const fechaValida = await pool.query(
+    `SELECT
+      $1::date < CURRENT_DATE AS es_pasada,
+      EXTRACT(ISODOW FROM $1::date) IN (6, 7) AS es_fin_de_semana`,
+    [fecha]
+  );
+
+  if (fechaValida.rows[0].es_pasada) {
+    throw new Error('No se pueden registrar turnos en fechas pasadas.');
+  }
+
+  if (fechaValida.rows[0].es_fin_de_semana) {
+    throw new Error('No se pueden registrar turnos los sabados ni domingos.');
+  }
+
+  const horaInicio = normalizeTime(hora_inicio);
+  const horaFin = fromMinutes(toMinutes(horaInicio) + DURACION_TURNO_MINUTOS);
+  const diaSemana = getDiaSemana(fecha);
+
+  const horarioProfesional = await pool.query(
+    `SELECT 1
+     FROM horarios_profesionales
+     WHERE profesional_id=$1
+       AND activo IS NOT FALSE
+       AND lower(dia)=$2
+       AND hora_inicio <= $3::time
+       AND hora_fin >= $4::time
+     LIMIT 1`,
+    [profesional_id, diaSemana, horaInicio, horaFin]
+  );
+
+  if (horarioProfesional.rows.length === 0) {
+    throw new Error('El horario seleccionado no corresponde con los horarios definidos para el profesional.');
+  }
+
+  const excludeTurno = turnoId ? 'AND id <> $7' : '';
+  const paramsBase = [fecha, horaInicio, horaFin, profesional_id, paciente_id, consultorio_id];
+  const params = turnoId ? [...paramsBase, turnoId] : paramsBase;
+
+  const conflictoProfesional = await pool.query(
+    `SELECT 1 FROM turnos
+     WHERE fecha=$1
+       AND estado <> 'cancelado'
+       ${excludeTurno}
+       AND profesional_id=$4
+       AND hora_inicio < $3::time
+       AND $2::time < hora_fin
+     LIMIT 1`,
+    params
+  );
+
+  if (conflictoProfesional.rows.length > 0) {
+    throw new Error('El profesional ya tiene un turno superpuesto en ese horario.');
+  }
+
+  const conflictoPaciente = await pool.query(
+    `SELECT 1 FROM turnos
+     WHERE fecha=$1
+       AND estado <> 'cancelado'
+       ${excludeTurno}
+       AND paciente_id=$5
+       AND hora_inicio < $3::time
+       AND $2::time < hora_fin
+     LIMIT 1`,
+    params
+  );
+
+  if (conflictoPaciente.rows.length > 0) {
+    throw new Error('El paciente ya tiene un turno superpuesto en ese horario.');
+  }
+
+  const conflictoConsultorio = await pool.query(
+    `SELECT 1 FROM turnos
+     WHERE fecha=$1
+       AND estado <> 'cancelado'
+       ${excludeTurno}
+       AND consultorio_id=$6
+       AND hora_inicio < $3::time
+       AND $2::time < hora_fin
+     LIMIT 1`,
+    params
+  );
+
+  if (conflictoConsultorio.rows.length > 0) {
+    throw new Error('El consultorio ya tiene un turno superpuesto en ese horario.');
+  }
+
+  return {
+    ...data,
+    hora_inicio: horaInicio,
+    hora_fin: horaFin,
+  };
+};
+
+// POST CREAR
 const crearTurno = async (data) => {
   const {
     fecha,
@@ -10,39 +149,16 @@ const crearTurno = async (data) => {
     profesional_id,
     consultorio_id,
     especialidad_id,
-    motivo_consulta
-  } = data;
-
-  if (!fecha || !hora_inicio || !hora_fin || !paciente_id || !profesional_id || !consultorio_id || !especialidad_id) {
-    throw new Error('Faltan datos obligatorios');
-  }
-
-  const conflictoProfesional = await pool.query(
-    `SELECT 1 FROM turnos 
-     WHERE fecha=$1 AND hora_inicio=$2 AND profesional_id=$3`,
-    [fecha, hora_inicio, profesional_id]
-  );
-
-  if (conflictoProfesional.rows.length > 0) {
-    throw new Error('El profesional ya tiene un turno en ese horario');
-  }
-
-  const conflictoConsultorio = await pool.query(
-    `SELECT 1 FROM turnos 
-     WHERE fecha=$1 AND hora_inicio=$2 AND consultorio_id=$3`,
-    [fecha, hora_inicio, consultorio_id]
-  );
-
-  if (conflictoConsultorio.rows.length > 0) {
-    throw new Error('El consultorio ya está ocupado en ese horario');
-  }
+    estado,
+    motivo_consulta,
+  } = await validarDatosTurno(data);
 
   const result = await pool.query(
-    `INSERT INTO turnos 
-    (fecha, hora_inicio, hora_fin, paciente_id, profesional_id, consultorio_id, especialidad_id, motivo_consulta)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    `INSERT INTO turnos
+    (fecha, hora_inicio, hora_fin, paciente_id, profesional_id, consultorio_id, especialidad_id, estado, motivo_consulta)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     RETURNING *`,
-    [fecha, hora_inicio, hora_fin, paciente_id, profesional_id, consultorio_id, especialidad_id, motivo_consulta]
+    [fecha, hora_inicio, hora_fin, paciente_id, profesional_id, consultorio_id, especialidad_id, estado, motivo_consulta]
   );
 
   return result.rows[0];
@@ -61,6 +177,7 @@ const getTurnos = async () => {
     LEFT JOIN profesionales pr ON t.profesional_id = pr.id
     LEFT JOIN consultorios c ON t.consultorio_id = c.id
     LEFT JOIN especialidades e ON t.especialidad_id = e.id
+    WHERE t.fecha >= CURRENT_DATE
     ORDER BY t.fecha, t.hora_inicio
   `);
 
@@ -85,11 +202,11 @@ const actualizarTurno = async (id, data) => {
     consultorio_id,
     especialidad_id,
     motivo_consulta,
-    estado
-  } = data;
+    estado,
+  } = await validarDatosTurno(data, id);
 
   const result = await pool.query(
-    `UPDATE turnos SET 
+    `UPDATE turnos SET
       fecha=$1,
       hora_inicio=$2,
       hora_fin=$3,
@@ -124,5 +241,5 @@ module.exports = {
   getTurnos,
   obtenerTurnoPorId,
   actualizarTurno,
-  eliminarTurno
+  eliminarTurno,
 };

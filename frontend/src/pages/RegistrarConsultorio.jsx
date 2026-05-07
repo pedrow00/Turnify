@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegistrarConsultorio.css";
 
@@ -7,6 +7,7 @@ const initialForm = {
   piso: "",
   ubicacion: "",
   activo: true,
+  especialidad_ids: [],
 };
 
 export default function RegistrarConsultorio() {
@@ -17,6 +18,29 @@ export default function RegistrarConsultorio() {
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [especialidades, setEspecialidades] = useState([]);
+  const [loadingEspecialidades, setLoadingEspecialidades] = useState(true);
+
+  useEffect(() => {
+    const cargarEspecialidades = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/especialidades`);
+
+        if (!response.ok) {
+          throw new Error("No se pudieron cargar las especialidades.");
+        }
+
+        const data = await response.json();
+        setEspecialidades(data);
+      } catch (error) {
+        setSubmitError(error.message);
+      } finally {
+        setLoadingEspecialidades(false);
+      }
+    };
+
+    cargarEspecialidades();
+  }, [apiUrl]);
 
   const clearFieldError = (field) => {
     if (!errors[field]) return;
@@ -32,6 +56,22 @@ export default function RegistrarConsultorio() {
     }));
 
     clearFieldError(name);
+    setSubmitError("");
+  };
+
+  const handleEspecialidadChange = (especialidadId) => {
+    setForm((prev) => {
+      const yaSeleccionada = prev.especialidad_ids.includes(especialidadId);
+
+      return {
+        ...prev,
+        especialidad_ids: yaSeleccionada
+          ? prev.especialidad_ids.filter((id) => id !== especialidadId)
+          : [...prev.especialidad_ids, especialidadId],
+      };
+    });
+
+    clearFieldError("especialidad_ids");
     setSubmitError("");
   };
 
@@ -52,6 +92,10 @@ export default function RegistrarConsultorio() {
       nuevosErrores.ubicacion = "La ubicación es obligatoria.";
     }
 
+    if (form.especialidad_ids.length === 0) {
+      nuevosErrores.especialidad_ids = "Selecciona al menos una especialidad.";
+    }
+
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -70,6 +114,7 @@ export default function RegistrarConsultorio() {
         piso: form.piso.trim(),
         ubicacion: form.ubicacion.trim(),
         activo: form.activo,
+        especialidad_ids: form.especialidad_ids,
       };
 
       const response = await fetch(`${apiUrl}/consultorios`, {
@@ -175,6 +220,31 @@ export default function RegistrarConsultorio() {
                   <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
                 </select>
+              </div>
+
+              <div className="field field-full">
+                <label>Especialidades</label>
+                <div className={`checkbox-list ${errors.especialidad_ids ? "input-error" : ""}`}>
+                  {loadingEspecialidades ? (
+                    <span className="checkbox-empty">Cargando especialidades...</span>
+                  ) : especialidades.length > 0 ? (
+                    especialidades.map((especialidad) => (
+                      <label key={especialidad.id} className="checkbox-option">
+                        <input
+                          type="checkbox"
+                          checked={form.especialidad_ids.includes(especialidad.id)}
+                          onChange={() => handleEspecialidadChange(especialidad.id)}
+                        />
+                        <span>{especialidad.nombre}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <span className="checkbox-empty">No hay especialidades cargadas.</span>
+                  )}
+                </div>
+                {errors.especialidad_ids && (
+                  <span className="field-error">{errors.especialidad_ids}</span>
+                )}
               </div>
 
             </div>

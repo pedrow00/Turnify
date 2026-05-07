@@ -125,15 +125,9 @@ CREATE TABLE consultorios (
     piso VARCHAR(10) NOT NULL,
     ubicacion VARCHAR(150) NOT NULL,
     activo BOOLEAN DEFAULT true,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	especialidad_id INTEGER,
-
-    CONSTRAINT fk_consultorio_especialidad
-    FOREIGN KEY (especialidad_id)
-    REFERENCES especialidades(id)
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-);
 CREATE TABLE consultorio_especialidades (
     id SERIAL PRIMARY KEY,
     consultorio_id INTEGER REFERENCES consultorios(id) ON DELETE CASCADE,
@@ -172,7 +166,13 @@ CREATE TABLE turnos (
     motivo_consulta TEXT,
 
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion TIMESTAMP
+    fecha_modificacion TIMESTAMP,
+
+    CONSTRAINT chk_turnos_duracion_15_minutos
+    CHECK (hora_fin = hora_inicio + INTERVAL '15 minutes'),
+
+    CONSTRAINT chk_turnos_dia_laborable
+    CHECK (EXTRACT(ISODOW FROM fecha) BETWEEN 1 AND 5)
 );
 
 ------------------USUARIOS---------------------------

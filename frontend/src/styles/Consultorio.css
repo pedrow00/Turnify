@@ -179,6 +179,10 @@ body {
   font-weight: 500;
 }
 
+.detalle-full {
+  grid-column: 1 / -1;
+}
+
 /* Actions */
 .consultorio-actions {
   display: flex;
@@ -340,6 +344,10 @@ body {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-dark);
+}
+
+.consultorio-modal-item-full {
+  grid-column: 1 / -1;
 }
 
 /* ACTIONS */

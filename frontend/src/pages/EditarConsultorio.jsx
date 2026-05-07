@@ -7,6 +7,7 @@ const initialForm = {
   piso: "",
   ubicacion: "",
   activo: true,
+  especialidad_ids: [],
 };
 
 export default function EditarConsultorio() {
@@ -21,6 +22,7 @@ export default function EditarConsultorio() {
   const [guardando, setGuardando] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [especialidades, setEspecialidades] = useState([]);
 
   // 🔹 CARGAR CONSULTORIO
   const cargarConsultorio = useCallback(async () => {
@@ -28,21 +30,33 @@ export default function EditarConsultorio() {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch(`${apiUrl}/consultorios/${id}`);
+      const [consultorioResponse, especialidadesResponse] = await Promise.all([
+        fetch(`${apiUrl}/consultorios/${id}`),
+        fetch(`${apiUrl}/especialidades`),
+      ]);
 
-      if (!response.ok) {
+      if (!consultorioResponse.ok) {
         throw new Error("No se pudo cargar el consultorio");
       }
 
-      const data = await response.json();
+      if (!especialidadesResponse.ok) {
+        throw new Error("No se pudieron cargar las especialidades");
+      }
+
+      const [data, especialidadesData] = await Promise.all([
+        consultorioResponse.json(),
+        especialidadesResponse.json(),
+      ]);
 
       const nextForm = {
         numero_consultorio: data.numero_consultorio ?? "",
         piso: data.piso ?? "",
         ubicacion: data.ubicacion ?? "",
         activo: data.activo ?? true,
+        especialidad_ids: (data.especialidades ?? []).map((especialidad) => especialidad.id),
       };
 
+      setEspecialidades(especialidadesData);
       setForm(nextForm);
       setInitialSnapshot(JSON.stringify(nextForm));
     } catch (error) {
@@ -69,6 +83,22 @@ export default function EditarConsultorio() {
     setSubmitError("");
   };
 
+  const handleEspecialidadChange = (especialidadId) => {
+    setForm((prev) => {
+      const yaSeleccionada = prev.especialidad_ids.includes(especialidadId);
+
+      return {
+        ...prev,
+        especialidad_ids: yaSeleccionada
+          ? prev.especialidad_ids.filter((item) => item !== especialidadId)
+          : [...prev.especialidad_ids, especialidadId],
+      };
+    });
+
+    setErrors((prev) => ({ ...prev, especialidad_ids: "" }));
+    setSubmitError("");
+  };
+
   // 🔹 VALIDACION
   const validarFormulario = () => {
     const nuevosErrores = {};
@@ -81,6 +111,10 @@ export default function EditarConsultorio() {
 
     if (form.piso && !/^\d+$/.test(form.piso)) {
       nuevosErrores.piso = "El piso debe ser numerico";
+    }
+
+    if (form.especialidad_ids.length === 0) {
+      nuevosErrores.especialidad_ids = "Selecciona al menos una especialidad.";
     }
 
     setErrors(nuevosErrores);
@@ -102,6 +136,7 @@ export default function EditarConsultorio() {
         piso: form.piso || null,
         ubicacion: form.ubicacion || null,
         activo: form.activo,
+        especialidad_ids: form.especialidad_ids,
       };
 
       const response = await fetch(`${apiUrl}/consultorios/${id}`, {
@@ -208,6 +243,29 @@ export default function EditarConsultorio() {
                     checked={form.activo}
                     onChange={handleChange}
                   />
+                </div>
+
+                <div className="field field-full">
+                  <label>Especialidades</label>
+                  <div className={`checkbox-list ${errors.especialidad_ids ? "input-error" : ""}`}>
+                    {especialidades.length > 0 ? (
+                      especialidades.map((especialidad) => (
+                        <label key={especialidad.id} className="checkbox-option">
+                          <input
+                            type="checkbox"
+                            checked={form.especialidad_ids.includes(especialidad.id)}
+                            onChange={() => handleEspecialidadChange(especialidad.id)}
+                          />
+                          <span>{especialidad.nombre}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <span className="checkbox-empty">No hay especialidades cargadas.</span>
+                    )}
+                  </div>
+                  {errors.especialidad_ids && (
+                    <span className="field-error">{errors.especialidad_ids}</span>
+                  )}
                 </div>
 
               </div>

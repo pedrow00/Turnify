@@ -41,6 +41,13 @@ export default function Consultorio() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [consultorioSeleccionado]);
 
+  const getEspecialidadesTexto = (consultorio) => {
+    if (!consultorio.especialidades?.length) return "Sin especialidades";
+    return consultorio.especialidades
+      .map((especialidad) => especialidad.nombre)
+      .join(", ");
+  };
+
   // 🔹 Filtro búsqueda
   const consultoriosFiltrados = consultorios.filter((con) => {
     const termino = busqueda.trim().toLowerCase();
@@ -50,11 +57,13 @@ export default function Consultorio() {
     const numero = String(con.numero_consultorio ?? "").toLowerCase();
     const piso = String(con.piso ?? "").toLowerCase();
     const ubicacion = String(con.ubicacion ?? "").toLowerCase();
+    const especialidades = getEspecialidadesTexto(con).toLowerCase();
 
     return (
       numero.includes(termino) ||
       piso.includes(termino) ||
-      ubicacion.includes(termino)
+      ubicacion.includes(termino) ||
+      especialidades.includes(termino)
     );
   });
 
@@ -108,6 +117,11 @@ export default function Consultorio() {
                   <div className="detalle-item">
                     <span className="label">Ubicación</span>
                     <span className="value">{con.ubicacion ?? "Sin dato"}</span>
+                  </div>
+
+                  <div className="detalle-item detalle-full">
+                    <span className="label">Especialidades</span>
+                    <span className="value">{getEspecialidadesTexto(con)}</span>
                   </div>
                 </div>
 
@@ -200,6 +214,13 @@ export default function Consultorio() {
             <span className="label">Estado</span>
             <span className="value">
             {consultorioSeleccionado.activo ? "Activo" : "Inactivo"}
+            </span>
+        </div>
+
+        <div className="consultorio-modal-item consultorio-modal-item-full">
+            <span className="label">Especialidades</span>
+            <span className="value">
+            {getEspecialidadesTexto(consultorioSeleccionado)}
             </span>
         </div>
         </div>
