@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 12px 0;
+  padding: 10px 0;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -44,19 +44,19 @@
 .navbar-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
 }
 
 .navbar-logo .logo-img {
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
 }
 
 .navbar-logo .logo-text {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   color: var(--text-dark);
 }
 
@@ -130,6 +130,15 @@
   .navbar-container {
     padding: 12px 20px;
     flex-wrap: wrap;
+  }
+
+  .navbar-logo .logo-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .navbar-logo .logo-text {
+    font-size: 23px;
   }
 
   .navbar-links {

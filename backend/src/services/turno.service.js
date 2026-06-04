@@ -26,7 +26,6 @@ const validarDatosTurno = async (data, turnoId = null) => {
     hora_inicio,
     paciente_id,
     profesional_id,
-    consultorio_id,
     especialidad_id,
     estado,
     motivo_consulta,
@@ -37,7 +36,6 @@ const validarDatosTurno = async (data, turnoId = null) => {
     !hora_inicio ||
     !paciente_id ||
     !profesional_id ||
-    !consultorio_id ||
     !especialidad_id ||
     !estado ||
     !String(motivo_consulta || '').trim()
@@ -63,6 +61,22 @@ const validarDatosTurno = async (data, turnoId = null) => {
   const horaInicio = normalizeTime(hora_inicio);
   const horaFin = fromMinutes(toMinutes(horaInicio) + DURACION_TURNO_MINUTOS);
   const diaSemana = getDiaSemana(fecha);
+
+  const especialidadProfesional = await pool.query(
+    `SELECT 1
+     FROM profesional_especialidades
+     WHERE profesional_id=$1 AND especialidad_id=$2
+     UNION
+     SELECT 1
+     FROM profesionales
+     WHERE id=$1 AND especialidad_id=$2
+     LIMIT 1`,
+    [profesional_id, especialidad_id]
+  );
+
+  if (especialidadProfesional.rows.length === 0) {
+    throw new Error('El profesional no atiende la especialidad seleccionada.');
+  }
 
   const horarioProfesional = await pool.query(
     `SELECT 1
@@ -118,28 +132,41 @@ const validarDatosTurno = async (data, turnoId = null) => {
     throw new Error('El paciente ya tiene un turno superpuesto en ese horario.');
   }
 
-  const conflictoConsultorio = await pool.query(
-    `SELECT 1 FROM turnos
-     WHERE fecha=$1
-       AND estado <> 'cancelado'
-       ${excludeTurno}
-       AND consultorio_id=$4
-       AND hora_inicio < $3::time
-       AND $2::time < hora_fin
+  const consultorioDisponible = await pool.query(
+    `SELECT c.id
+     FROM profesional_consultorios pc
+     JOIN consultorios c ON c.id = pc.consultorio_id
+     JOIN consultorio_especialidades ce
+       ON ce.consultorio_id = c.id
+      AND ce.especialidad_id = $4
+     WHERE pc.profesional_id = $5
+       AND c.activo IS NOT FALSE
+       AND NOT EXISTS (
+         SELECT 1
+         FROM turnos t
+         WHERE t.fecha=$1
+           AND t.estado <> 'cancelado'
+           ${turnoId ? 'AND t.id <> $6' : ''}
+           AND t.consultorio_id=c.id
+           AND t.hora_inicio < $3::time
+           AND $2::time < t.hora_fin
+       )
+     ORDER BY c.numero_consultorio
      LIMIT 1`,
     turnoId
-      ? [fecha, horaInicio, horaFin, consultorio_id, turnoId]
-      : [fecha, horaInicio, horaFin, consultorio_id]
+      ? [fecha, horaInicio, horaFin, especialidad_id, profesional_id, turnoId]
+      : [fecha, horaInicio, horaFin, especialidad_id, profesional_id]
   );
 
-  if (conflictoConsultorio.rows.length > 0) {
-    throw new Error('El consultorio ya tiene un turno superpuesto en ese horario.');
+  if (consultorioDisponible.rows.length === 0) {
+    throw new Error('No hay consultorios asignados y disponibles para ese profesional, especialidad y horario.');
   }
 
   return {
     ...data,
     hora_inicio: horaInicio,
     hora_fin: horaFin,
+    consultorio_id: consultorioDisponible.rows[0].id,
   };
 };
 

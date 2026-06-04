@@ -57,17 +57,43 @@ export default function Profesional() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [profesionalSeleccionado]);
 
-  const getEspecialidadNombre = (prof) =>
-    prof.especialidad_nombre ||
-    especialidades.find((especialidad) => String(especialidad.id) === String(prof.especialidad_id))
-      ?.nombre ||
-    "Sin especialidad";
+  const getEspecialidadesProfesional = (prof) => {
+    if (Array.isArray(prof.especialidades) && prof.especialidades.length > 0) {
+      return prof.especialidades;
+    }
+
+    const especialidadNombre =
+      prof.especialidad_nombre ||
+      especialidades.find((especialidad) => String(especialidad.id) === String(prof.especialidad_id))
+        ?.nombre;
+
+    return especialidadNombre
+      ? [{ id: prof.especialidad_id, nombre: especialidadNombre, matricula: prof.matricula, es_principal: true }]
+      : [];
+  };
+
+  const getEspecialidadPrincipal = (prof) =>
+    getEspecialidadesProfesional(prof).find((especialidad) => especialidad.es_principal) ||
+    getEspecialidadesProfesional(prof)[0];
+
+  const getEspecialidadesTexto = (prof) => {
+    const especialidadesProfesional = getEspecialidadesProfesional(prof);
+    if (especialidadesProfesional.length === 0) return "Sin especialidad";
+
+    return especialidadesProfesional
+      .map((especialidad) =>
+        especialidad.es_principal ? `${especialidad.nombre} (principal)` : especialidad.nombre
+      )
+      .join(", ");
+  };
 
   const profesionalesFiltrados = profesionales.filter((prof) => {
     const termino = busqueda.trim().toLowerCase();
     const coincideEspecialidad =
       especialidadSeleccionada === "todas" ||
-      String(prof.especialidad_id) === String(especialidadSeleccionada);
+      getEspecialidadesProfesional(prof).some(
+        (especialidad) => String(especialidad.id) === String(especialidadSeleccionada)
+      );
 
     if (!coincideEspecialidad) {
       return false;
@@ -81,7 +107,7 @@ export default function Profesional() {
     const apellido = String(prof.apellido ?? "").toLowerCase();
     const cuil = String(prof.cuil ?? "").toLowerCase();
     const matricula = String(prof.matricula ?? "").toLowerCase();
-    const especialidad = getEspecialidadNombre(prof).toLowerCase();
+    const especialidad = getEspecialidadesTexto(prof).toLowerCase();
     const nombreCompleto = `${nombre} ${apellido}`.trim();
 
     return (
@@ -116,6 +142,16 @@ export default function Profesional() {
 
   const getHorariosActivos = (prof) =>
     Array.isArray(prof.horarios) ? prof.horarios.filter((horario) => horario.activo !== false) : [];
+
+  const getConsultoriosTexto = (prof) => {
+    if (!Array.isArray(prof.consultorios) || prof.consultorios.length === 0) {
+      return "Sin consultorios asignados";
+    }
+
+    return prof.consultorios
+      .map((consultorio) => `Consultorio ${consultorio.numero_consultorio}`)
+      .join(", ");
+  };
 
   if (loading) return <p>Cargando profesionales...</p>;
   if (error) return <p>{error}</p>;
@@ -162,7 +198,10 @@ export default function Profesional() {
             </button>
             {especialidades.map((especialidad) => {
               const total = profesionales.filter(
-                (prof) => String(prof.especialidad_id) === String(especialidad.id)
+                (prof) =>
+                  getEspecialidadesProfesional(prof).some(
+                    (item) => String(item.id) === String(especialidad.id)
+                  )
               ).length;
 
               return (
@@ -198,7 +237,7 @@ export default function Profesional() {
                         {prof.nombre} {prof.apellido}
                       </h3>
                       <span className="profesional-code">CUIL: {prof.cuil || "Sin dato"}</span>
-                      <span className="profesional-specialty">{getEspecialidadNombre(prof)}</span>
+                      <span className="profesional-specialty">{getEspecialidadesTexto(prof)}</span>
                     </div>
                   </div>
 
@@ -211,13 +250,17 @@ export default function Profesional() {
                       <span className="label">Email</span>
                       <span className="value">{prof.email || "Sin dato"}</span>
                     </div>
-                    <div className="detalle-item">
-                      <span className="label">Matricula</span>
-                      <span className="value">{prof.matricula || "Sin dato"}</span>
-                    </div>
                   <div className="detalle-item">
-                    <span className="label">Especialidad</span>
-                    <span className="value">{getEspecialidadNombre(prof)}</span>
+                    <span className="label">Matricula</span>
+                    <span className="value">{getEspecialidadPrincipal(prof)?.matricula || "Sin dato"}</span>
+                  </div>
+                  <div className="detalle-item">
+                    <span className="label">Especialidades</span>
+                    <span className="value">{getEspecialidadesTexto(prof)}</span>
+                  </div>
+                  <div className="detalle-item detalle-item-full">
+                    <span className="label">Consultorios</span>
+                    <span className="value">{getConsultoriosTexto(prof)}</span>
                   </div>
                   <div className="detalle-item detalle-item-full">
                     <span className="label">Horarios</span>
@@ -308,12 +351,12 @@ export default function Profesional() {
                 <span className="value">{profesionalSeleccionado.cuil || "Sin dato"}</span>
               </div>
               <div className="profesional-modal-item">
-                <span className="label">Matricula</span>
-                <span className="value">{profesionalSeleccionado.matricula || "Sin dato"}</span>
+                <span className="label">Matricula principal</span>
+                <span className="value">{getEspecialidadPrincipal(profesionalSeleccionado)?.matricula || "Sin dato"}</span>
               </div>
               <div className="profesional-modal-item">
-                <span className="label">Especialidad</span>
-                <span className="value">{getEspecialidadNombre(profesionalSeleccionado)}</span>
+                <span className="label">Especialidades</span>
+                <span className="value">{getEspecialidadesTexto(profesionalSeleccionado)}</span>
               </div>
               <div className="profesional-modal-item">
                 <span className="label">Sexo</span>
@@ -342,6 +385,10 @@ export default function Profesional() {
               <div className="profesional-modal-item">
                 <span className="label">Direccion</span>
                 <span className="value">{formatDireccion(profesionalSeleccionado)}</span>
+              </div>
+              <div className="profesional-modal-item profesional-modal-item-full">
+                <span className="label">Consultorios asignados</span>
+                <span className="value">{getConsultoriosTexto(profesionalSeleccionado)}</span>
               </div>
               <div className="profesional-modal-item profesional-modal-item-full">
                 <span className="label">Horarios disponibles</span>

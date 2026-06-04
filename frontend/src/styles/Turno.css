@@ -216,6 +216,19 @@
   text-decoration: none;
 }
 
+.turno-calendar .turno-weekend-disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.turno-calendar .turno-weekend-disabled .fc-daygrid-day-number {
+  color: #94a3b8;
+}
+
+.turno-calendar .turno-weekend-disabled .fc-daygrid-day-frame {
+  opacity: 0.72;
+}
+
 .turno-event {
   border: 0;
   border-radius: 6px;
@@ -282,10 +295,40 @@
   transform: translateY(-1px);
 }
 
-.turno-list-item h3 {
+.turno-patient-link {
+  display: inline-flex;
   margin: 8px 0 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--text-dark, #1e293b);
   font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.turno-patient-link:hover {
+  color: var(--primary, #2563eb);
+  text-decoration: underline;
+}
+
+.turno-list-edit {
+  min-height: 30px;
+  margin-top: 8px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-dark, #1e293b);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.turno-list-edit:hover {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
 }
 
 .turno-list-item p,
@@ -375,6 +418,26 @@
 .turno-slots {
   display: grid;
   gap: 10px;
+}
+
+.turno-auto-consultorio {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.turno-auto-consultorio span {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.turno-auto-consultorio p {
+  color: #64748b;
+  font-size: 13px;
 }
 
 .turno-slots-grid {
@@ -468,6 +531,147 @@
   color: #b91c1c;
 }
 
+.turno-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+  z-index: 220;
+}
+
+.turno-modal {
+  position: relative;
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
+    rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.2);
+}
+
+.turno-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-light, #64748b);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.turno-modal-close:hover {
+  color: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+}
+
+.turno-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding-right: 42px;
+}
+
+.turno-modal-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--primary, #2563eb) 0%, var(--primary-dark, #1d4ed8) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.turno-modal-header h2 {
+  margin: 8px 0 4px;
+  color: var(--text-dark, #1e293b);
+  font-size: 26px;
+}
+
+.turno-modal-header p {
+  color: var(--text-light, #64748b);
+  font-size: 14px;
+}
+
+.turno-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.turno-modal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.turno-modal-item-full {
+  grid-column: 1 / -1;
+}
+
+.turno-modal-item .label {
+  color: var(--text-light, #64748b);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.turno-modal-item .value {
+  color: var(--text-dark, #1e293b);
+  font-size: 14px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.turno-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.turno-modal-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.turno-modal-actions .btn-primary {
+  border: 0;
+  background: var(--primary, #2563eb);
+  color: #fff;
+}
+
+.turno-modal-actions .btn-secondary {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: var(--text-dark, #1e293b);
+}
+
 @media (max-width: 1180px) {
   .turno-layout {
     grid-template-columns: 1fr;
@@ -526,6 +730,26 @@
   }
 
   .turno-form-actions button {
+    width: 100%;
+  }
+
+  .turno-modal {
+    padding: 22px 18px;
+  }
+
+  .turno-modal-header {
+    align-items: flex-start;
+  }
+
+  .turno-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .turno-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .turno-modal-actions button {
     width: 100%;
   }
 }

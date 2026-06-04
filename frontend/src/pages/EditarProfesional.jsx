@@ -18,8 +18,6 @@ const initialForm = {
   apellido: "",
   sexo: "",
   cuil: "",
-  matricula: "",
-  especialidad_id: "",
   email: "",
   telefono: "",
   calle: "",
@@ -32,18 +30,29 @@ const initialForm = {
   foto_url: "",
 };
 
+const crearEspecialidadProfesional = () => ({
+  especialidad_id: "",
+  matricula: "",
+  es_principal: true,
+});
+
 export default function EditarProfesional() {
   const { id } = useParams();
   const navigate = useNavigate();
   const fotoInputRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
+  const [especialidadesProfesional, setEspecialidadesProfesional] = useState([
+    crearEspecialidadProfesional(),
+  ]);
+  const [consultorioIds, setConsultorioIds] = useState([]);
   const [horarios, setHorarios] = useState([crearHorarioVacio()]);
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
   const [localidades, setLocalidades] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
+  const [consultorios, setConsultorios] = useState([]);
   const [loadingProvincias, setLoadingProvincias] = useState(true);
   const [loadingLocalidades, setLoadingLocalidades] = useState(false);
   const [loadingEspecialidades, setLoadingEspecialidades] = useState(true);
@@ -53,24 +62,32 @@ export default function EditarProfesional() {
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    const cargarEspecialidades = async () => {
+    const cargarDatosProfesionales = async () => {
       try {
-        const response = await fetch(`${apiUrl}/especialidades`);
+        const [especialidadesResponse, consultoriosResponse] = await Promise.all([
+          fetch(`${apiUrl}/especialidades`),
+          fetch(`${apiUrl}/consultorios`),
+        ]);
 
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar las especialidades");
+        if (!especialidadesResponse.ok || !consultoriosResponse.ok) {
+          throw new Error("No se pudieron cargar los datos profesionales");
         }
 
-        const data = await response.json();
-        setEspecialidades(data);
+        const [especialidadesData, consultoriosData] = await Promise.all([
+          especialidadesResponse.json(),
+          consultoriosResponse.json(),
+        ]);
+
+        setEspecialidades(especialidadesData);
+        setConsultorios(consultoriosData);
       } catch {
-        setSubmitError("No se pudieron cargar las especialidades.");
+        setSubmitError("No se pudieron cargar las especialidades y consultorios.");
       } finally {
         setLoadingEspecialidades(false);
       }
     };
 
-    cargarEspecialidades();
+    cargarDatosProfesionales();
   }, [apiUrl]);
 
   useEffect(() => {
@@ -115,13 +132,27 @@ export default function EditarProfesional() {
 
       const profesional = await response.json();
       const nextHorarios = normalizarHorariosDesdeApi(profesional.horarios);
+      const nextEspecialidades = Array.isArray(profesional.especialidades) && profesional.especialidades.length > 0
+        ? profesional.especialidades.map((especialidad) => ({
+            especialidad_id: String(especialidad.id),
+            matricula: especialidad.matricula ?? "",
+            es_principal: especialidad.es_principal === true,
+          }))
+        : [
+            {
+              especialidad_id: profesional.especialidad_id ? String(profesional.especialidad_id) : "",
+              matricula: profesional.matricula ?? "",
+              es_principal: true,
+            },
+          ];
+      const nextConsultorioIds = Array.isArray(profesional.consultorios)
+        ? profesional.consultorios.map((consultorio) => consultorio.id)
+        : [];
       const nextForm = {
         nombre: profesional.nombre ?? "",
         apellido: profesional.apellido ?? "",
         sexo: profesional.sexo ?? "",
         cuil: profesional.cuil ?? "",
-        matricula: profesional.matricula ?? "",
-        especialidad_id: profesional.especialidad_id ? String(profesional.especialidad_id) : "",
         email: profesional.email ?? "",
         telefono: profesional.telefono ?? "",
         calle: profesional.calle ?? "",
@@ -135,10 +166,25 @@ export default function EditarProfesional() {
       };
 
       setForm(nextForm);
+      setEspecialidadesProfesional(
+        nextEspecialidades.some((especialidad) => especialidad.es_principal)
+          ? nextEspecialidades
+          : nextEspecialidades.map((especialidad, index) => ({
+              ...especialidad,
+              es_principal: index === 0,
+            }))
+      );
+      setConsultorioIds(nextConsultorioIds);
       setHorarios(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]);
       setInitialSnapshot(
         JSON.stringify({
           form: nextForm,
+          especialidades: nextEspecialidades.map((especialidad) => ({
+            especialidad_id: Number(especialidad.especialidad_id),
+            matricula: especialidad.matricula.trim(),
+            es_principal: especialidad.es_principal,
+          })),
+          consultorio_ids: nextConsultorioIds,
           horarios: prepararHorariosPayload(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]),
         })
       );
@@ -314,6 +360,103 @@ export default function EditarProfesional() {
     setSubmitError("");
   };
 
+  const especialidadIdsSeleccionadas = especialidadesProfesional
+    .map((item) => Number(item.especialidad_id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+
+  const consultoriosCompatibles = consultorios.filter((consultorio) => {
+    if (consultorio.activo === false || especialidadIdsSeleccionadas.length === 0) {
+      return false;
+    }
+
+    return consultorio.especialidades?.some((especialidad) =>
+      especialidadIdsSeleccionadas.includes(Number(especialidad.id))
+    );
+  });
+
+  const limpiarConsultoriosIncompatibles = (nextEspecialidades) => {
+    const nextEspecialidadIds = nextEspecialidades
+      .map((item) => Number(item.especialidad_id))
+      .filter((especialidadId) => Number.isInteger(especialidadId) && especialidadId > 0);
+
+    setConsultorioIds((currentIds) =>
+      currentIds.filter((consultorioId) => {
+        const consultorio = consultorios.find((item) => Number(item.id) === Number(consultorioId));
+        return consultorio?.especialidades?.some((especialidad) =>
+          nextEspecialidadIds.includes(Number(especialidad.id))
+        );
+      })
+    );
+  };
+
+  const handleEspecialidadProfesionalChange = (index, fieldName, value) => {
+    setEspecialidadesProfesional((currentItems) => {
+      const nextItems = currentItems.map((item, currentIndex) => {
+        if (currentIndex !== index) return item;
+        return { ...item, [fieldName]: value };
+      });
+
+      limpiarConsultoriosIncompatibles(nextItems);
+      return nextItems;
+    });
+    clearFieldError("especialidades");
+    setSubmitError("");
+  };
+
+  const marcarEspecialidadPrincipal = (index) => {
+    setEspecialidadesProfesional((currentItems) =>
+      currentItems.map((item, currentIndex) => ({
+        ...item,
+        es_principal: currentIndex === index,
+      }))
+    );
+    clearFieldError("especialidades");
+    setSubmitError("");
+  };
+
+  const agregarEspecialidadProfesional = () => {
+    setEspecialidadesProfesional((currentItems) => [
+      ...currentItems,
+      { ...crearEspecialidadProfesional(), es_principal: false },
+    ]);
+    clearFieldError("especialidades");
+    setSubmitError("");
+  };
+
+  const quitarEspecialidadProfesional = (index) => {
+    setEspecialidadesProfesional((currentItems) => {
+      const nextItems = currentItems.length === 1
+        ? [crearEspecialidadProfesional()]
+        : currentItems.filter((_, currentIndex) => currentIndex !== index);
+
+      if (!nextItems.some((item) => item.es_principal)) {
+        nextItems[0] = { ...nextItems[0], es_principal: true };
+      }
+
+      limpiarConsultoriosIncompatibles(nextItems);
+      return nextItems;
+    });
+    clearFieldError("especialidades");
+    setSubmitError("");
+  };
+
+  const handleConsultorioChange = (consultorioId) => {
+    setConsultorioIds((currentIds) =>
+      currentIds.includes(consultorioId)
+        ? currentIds.filter((item) => item !== consultorioId)
+        : [...currentIds, consultorioId]
+    );
+    clearFieldError("consultorio_ids");
+    setSubmitError("");
+  };
+
+  const prepararEspecialidadesPayload = () =>
+    especialidadesProfesional.map((item) => ({
+      especialidad_id: Number(item.especialidad_id),
+      matricula: item.matricula.trim(),
+      es_principal: item.es_principal,
+    }));
+
   const validarFormulario = () => {
     const nuevosErrores = {};
 
@@ -339,14 +482,25 @@ export default function EditarProfesional() {
       nuevosErrores.cuil = "El CUIL debe tener 11 digitos.";
     }
 
-    if (!form.matricula.trim()) {
-      nuevosErrores.matricula = "La matricula es obligatoria.";
-    } else if (!/^[A-Za-z0-9 -]{3,50}$/.test(form.matricula.trim())) {
-      nuevosErrores.matricula = "Ingresa una matricula valida.";
+    const especialidadesPayload = prepararEspecialidadesPayload();
+    const especialidadIds = especialidadesPayload.map((item) => item.especialidad_id);
+    const especialidadesUnicas = new Set(especialidadIds);
+    const principales = especialidadesPayload.filter((item) => item.es_principal);
+
+    if (
+      especialidadesPayload.some(
+        (item) => !item.especialidad_id || !/^[A-Za-z0-9 -]{3,50}$/.test(item.matricula)
+      )
+    ) {
+      nuevosErrores.especialidades = "Completa cada especialidad con una matricula valida.";
+    } else if (especialidadesUnicas.size !== especialidadIds.length) {
+      nuevosErrores.especialidades = "No repitas especialidades para el mismo profesional.";
+    } else if (principales.length !== 1) {
+      nuevosErrores.especialidades = "Marca una unica matricula principal.";
     }
 
-    if (!form.especialidad_id) {
-      nuevosErrores.especialidad_id = "Selecciona una especialidad.";
+    if (consultorioIds.length === 0) {
+      nuevosErrores.consultorio_ids = "Selecciona al menos un consultorio compatible.";
     }
 
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
@@ -390,8 +544,8 @@ export default function EditarProfesional() {
         apellido: form.apellido.trim(),
         sexo: form.sexo,
         cuil: form.cuil.trim(),
-        matricula: form.matricula.trim(),
-        especialidad_id: Number(form.especialidad_id),
+        especialidades: prepararEspecialidadesPayload(),
+        consultorio_ids: consultorioIds,
         email: form.email.trim() || null,
         telefono: form.telefono.trim() || null,
         calle: form.calle.trim() || null,
@@ -424,8 +578,6 @@ export default function EditarProfesional() {
             ...form,
             email: form.email.trim(),
             telefono: form.telefono.trim(),
-            matricula: form.matricula.trim(),
-            especialidad_id: form.especialidad_id,
             calle: form.calle.trim(),
             numero: form.numero.trim(),
             codigo_postal: form.codigo_postal.trim(),
@@ -433,6 +585,8 @@ export default function EditarProfesional() {
             departamento: form.departamento.trim(),
             foto_url: form.foto_url.trim(),
           },
+          especialidades: prepararEspecialidadesPayload(),
+          consultorio_ids: consultorioIds,
           horarios: prepararHorariosPayload(horarios),
         })
       );
@@ -457,8 +611,6 @@ export default function EditarProfesional() {
       ...form,
       email: form.email.trim(),
       telefono: form.telefono.trim(),
-      matricula: form.matricula.trim(),
-      especialidad_id: form.especialidad_id,
       calle: form.calle.trim(),
       numero: form.numero.trim(),
       codigo_postal: form.codigo_postal.trim(),
@@ -466,6 +618,8 @@ export default function EditarProfesional() {
       departamento: form.departamento.trim(),
       foto_url: form.foto_url.trim(),
     },
+    especialidades: prepararEspecialidadesPayload(),
+    consultorio_ids: consultorioIds,
     horarios: prepararHorariosPayload(horarios),
   });
   const isDirty = formSnapshot !== initialSnapshot;
@@ -622,44 +776,106 @@ export default function EditarProfesional() {
                   {errors.sexo ? <span className="field-error">{errors.sexo}</span> : null}
                 </div>
 
-                <div className="field">
-                  <label htmlFor="matricula">Matricula</label>
-                  <input
-                    id="matricula"
-                    name="matricula"
-                    type="text"
-                    value={form.matricula}
-                    onChange={handleChange}
-                    placeholder="MP 12345"
-                    className={errors.matricula ? "input-error" : ""}
-                    disabled={guardando}
-                  />
-                  {errors.matricula ? (
-                    <span className="field-error">{errors.matricula}</span>
+                <div className="field field-full">
+                  <span className="field-label">Especialidades y matriculas</span>
+                  <div className="profesional-especialidades-editor">
+                    {especialidadesProfesional.map((item, index) => (
+                      <div className="profesional-especialidad-row" key={`especialidad-${index}`}>
+                        <div className="field">
+                          <label htmlFor={`especialidad-${index}`}>Especialidad</label>
+                          <select
+                            id={`especialidad-${index}`}
+                            value={item.especialidad_id}
+                            onChange={(event) =>
+                              handleEspecialidadProfesionalChange(index, "especialidad_id", event.target.value)
+                            }
+                            disabled={loadingEspecialidades || guardando}
+                          >
+                            <option value="">
+                              {loadingEspecialidades ? "Cargando especialidades..." : "Selecciona una especialidad"}
+                            </option>
+                            {especialidades.map((especialidad) => (
+                              <option key={especialidad.id} value={especialidad.id}>
+                                {especialidad.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="field">
+                          <label htmlFor={`matricula-${index}`}>Matricula</label>
+                          <input
+                            id={`matricula-${index}`}
+                            type="text"
+                            value={item.matricula}
+                            onChange={(event) =>
+                              handleEspecialidadProfesionalChange(index, "matricula", event.target.value)
+                            }
+                            placeholder="MP 12345"
+                            disabled={guardando}
+                          />
+                        </div>
+
+                        <label className="principal-option">
+                          <input
+                            type="radio"
+                            name="especialidad_principal"
+                            checked={item.es_principal}
+                            onChange={() => marcarEspecialidadPrincipal(index)}
+                            disabled={guardando}
+                          />
+                          <span>Principal</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          className="btn-secondary horario-remove"
+                          onClick={() => quitarEspecialidadProfesional(index)}
+                          disabled={guardando}
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.especialidades ? (
+                    <span className="field-error">{errors.especialidades}</span>
                   ) : null}
+                  <button
+                    type="button"
+                    className="btn-secondary horario-add"
+                    onClick={agregarEspecialidadProfesional}
+                    disabled={guardando}
+                  >
+                    + Agregar especialidad
+                  </button>
                 </div>
 
-                <div className="field">
-                  <label htmlFor="especialidad_id">Especialidad</label>
-                  <select
-                    id="especialidad_id"
-                    name="especialidad_id"
-                    value={form.especialidad_id}
-                    onChange={handleChange}
-                    className={errors.especialidad_id ? "input-error" : ""}
-                    disabled={loadingEspecialidades || guardando}
-                  >
-                    <option value="">
-                      {loadingEspecialidades ? "Cargando especialidades..." : "Selecciona una especialidad"}
-                    </option>
-                    {especialidades.map((especialidad) => (
-                      <option key={especialidad.id} value={especialidad.id}>
-                        {especialidad.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.especialidad_id ? (
-                    <span className="field-error">{errors.especialidad_id}</span>
+                <div className="field field-full">
+                  <span className="field-label">Consultorios compatibles</span>
+                  <div className={`checkbox-list ${errors.consultorio_ids ? "input-error" : ""}`}>
+                    {consultoriosCompatibles.length > 0 ? (
+                      consultoriosCompatibles.map((consultorio) => (
+                        <label key={consultorio.id} className="checkbox-option">
+                          <input
+                            type="checkbox"
+                            checked={consultorioIds.includes(consultorio.id)}
+                            onChange={() => handleConsultorioChange(consultorio.id)}
+                            disabled={guardando}
+                          />
+                          <span>
+                            Consultorio {consultorio.numero_consultorio} - Piso {consultorio.piso}
+                          </span>
+                        </label>
+                      ))
+                    ) : (
+                      <span className="checkbox-empty">
+                        Selecciona especialidades para ver consultorios compatibles.
+                      </span>
+                    )}
+                  </div>
+                  {errors.consultorio_ids ? (
+                    <span className="field-error">{errors.consultorio_ids}</span>
                   ) : null}
                 </div>
               </div>

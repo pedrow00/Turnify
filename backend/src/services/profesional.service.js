@@ -7,6 +7,51 @@ const selectProfesionalesBase = `
       (
         SELECT json_agg(
           json_build_object(
+            'id', pe.especialidad_id,
+            'nombre', esp.nombre,
+            'matricula', pe.matricula,
+            'es_principal', pe.es_principal
+          )
+          ORDER BY pe.es_principal DESC, esp.nombre
+        )
+        FROM profesional_especialidades pe
+        JOIN especialidades esp ON esp.id = pe.especialidad_id
+        WHERE pe.profesional_id = p.id
+      ),
+      CASE
+        WHEN p.especialidad_id IS NULL THEN '[]'::json
+        ELSE json_build_array(
+          json_build_object(
+            'id', p.especialidad_id,
+            'nombre', e.nombre,
+            'matricula', p.matricula,
+            'es_principal', true
+          )
+        )
+      END
+    ) AS especialidades,
+    COALESCE(
+      (
+        SELECT json_agg(
+          json_build_object(
+            'id', c.id,
+            'numero_consultorio', c.numero_consultorio,
+            'piso', c.piso,
+            'ubicacion', c.ubicacion,
+            'activo', c.activo
+          )
+          ORDER BY c.numero_consultorio
+        )
+        FROM profesional_consultorios pc
+        JOIN consultorios c ON c.id = pc.consultorio_id
+        WHERE pc.profesional_id = p.id
+      ),
+      '[]'::json
+    ) AS consultorios,
+    COALESCE(
+      (
+        SELECT json_agg(
+          json_build_object(
             'id', hp.id,
             'dia', hp.dia,
             'hora_inicio', hp.hora_inicio,
@@ -76,6 +121,110 @@ const validarHorariosProfesional = (horarios = []) => {
   return horariosValidos;
 };
 
+const normalizarEspecialidadesProfesional = (data) => {
+  const source = Array.isArray(data.especialidades) && data.especialidades.length > 0
+    ? data.especialidades
+    : data.especialidad_id
+      ? [{ especialidad_id: data.especialidad_id, matricula: data.matricula, es_principal: true }]
+      : [];
+
+  const especialidades = source
+    .map((item) => ({
+      especialidad_id: Number(item.especialidad_id ?? item.id),
+      matricula: String(item.matricula ?? '').trim(),
+      es_principal: item.es_principal === true,
+    }))
+    .filter((item) => Number.isInteger(item.especialidad_id) && item.especialidad_id > 0);
+
+  if (especialidades.length === 0) {
+    throw new Error('Selecciona al menos una especialidad.');
+  }
+
+  const ids = new Set();
+  for (const especialidad of especialidades) {
+    if (ids.has(especialidad.especialidad_id)) {
+      throw new Error('No se puede repetir la misma especialidad.');
+    }
+    ids.add(especialidad.especialidad_id);
+
+    if (!/^[A-Za-z0-9 -]{3,50}$/.test(especialidad.matricula)) {
+      throw new Error('Ingresa una matricula valida para cada especialidad.');
+    }
+  }
+
+  const principales = especialidades.filter((item) => item.es_principal);
+  if (principales.length !== 1) {
+    throw new Error('Debe haber exactamente una especialidad con matricula principal.');
+  }
+
+  return especialidades;
+};
+
+const normalizarConsultorioIds = (consultorioIds = []) => {
+  if (!Array.isArray(consultorioIds)) {
+    throw new Error('Los consultorios deben enviarse como una lista de ids.');
+  }
+
+  return [...new Set(consultorioIds.map((id) => Number(id)))]
+    .filter((id) => Number.isInteger(id) && id > 0);
+};
+
+const validarConsultoriosProfesional = async (client, especialidades, consultorioIds) => {
+  if (consultorioIds.length === 0) {
+    throw new Error('Selecciona al menos un consultorio para el profesional.');
+  }
+
+  const especialidadIds = especialidades.map((item) => item.especialidad_id);
+  const result = await client.query(
+    `SELECT c.id, c.numero_consultorio,
+      COUNT(ce.especialidad_id) FILTER (WHERE ce.especialidad_id = ANY($2::int[])) AS coincidencias
+     FROM consultorios c
+     LEFT JOIN consultorio_especialidades ce ON ce.consultorio_id = c.id
+     WHERE c.id = ANY($1::int[])
+     GROUP BY c.id`,
+    [consultorioIds, especialidadIds]
+  );
+
+  if (result.rows.length !== consultorioIds.length) {
+    throw new Error('Uno o mas consultorios seleccionados no existen.');
+  }
+
+  const consultorioInvalido = result.rows.find((row) => Number(row.coincidencias) === 0);
+  if (consultorioInvalido) {
+    throw new Error(`El consultorio ${consultorioInvalido.numero_consultorio} no admite las especialidades seleccionadas.`);
+  }
+};
+
+const guardarEspecialidadesProfesional = async (client, profesionalId, especialidades) => {
+  await client.query('DELETE FROM profesional_especialidades WHERE profesional_id=$1', [profesionalId]);
+
+  for (const especialidad of especialidades) {
+    await client.query(
+      `INSERT INTO profesional_especialidades
+        (profesional_id, especialidad_id, matricula, es_principal)
+       VALUES ($1,$2,$3,$4)`,
+      [
+        profesionalId,
+        especialidad.especialidad_id,
+        especialidad.matricula,
+        especialidad.es_principal,
+      ]
+    );
+  }
+};
+
+const guardarConsultoriosProfesional = async (client, profesionalId, consultorioIds) => {
+  await client.query('DELETE FROM profesional_consultorios WHERE profesional_id=$1', [profesionalId]);
+
+  for (const consultorioId of consultorioIds) {
+    await client.query(
+      `INSERT INTO profesional_consultorios (profesional_id, consultorio_id)
+       VALUES ($1,$2)`,
+      [profesionalId, consultorioId]
+    );
+  }
+};
+
 const guardarHorariosProfesional = async (client, profesionalId, horarios = []) => {
   const horariosValidos = validarHorariosProfesional(horarios);
 
@@ -119,14 +268,18 @@ const obtenerProfesionalPorId = async (id) => {
 // POST
 const crearProfesional = async (data) => {
   const { 
-    nombre, apellido, sexo, cuil, matricula, email, telefono,
+    nombre, apellido, sexo, cuil, email, telefono,
     calle, numero, codigo_postal, piso, departamento,
-    provincia_nombre, localidad_nombre, foto_url, especialidad_id, horarios = []
+    provincia_nombre, localidad_nombre, foto_url, horarios = []
   } = data;
+  const especialidades = normalizarEspecialidadesProfesional(data);
+  const principal = especialidades.find((item) => item.es_principal);
+  const consultorioIds = normalizarConsultorioIds(data.consultorio_ids);
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
+    await validarConsultoriosProfesional(client, especialidades, consultorioIds);
 
     const result = await client.query(
       `INSERT INTO profesionales (
@@ -137,12 +290,14 @@ const crearProfesional = async (data) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
-        nombre, apellido, sexo, cuil, matricula, email, telefono,
+        nombre, apellido, sexo, cuil, principal.matricula, email, telefono,
         calle, numero, codigo_postal, piso, departamento,
-        provincia_nombre, localidad_nombre, foto_url, especialidad_id
+        provincia_nombre, localidad_nombre, foto_url, principal.especialidad_id
       ]
     );
 
+    await guardarEspecialidadesProfesional(client, result.rows[0].id, especialidades);
+    await guardarConsultoriosProfesional(client, result.rows[0].id, consultorioIds);
     await guardarHorariosProfesional(client, result.rows[0].id, horarios);
     await client.query('COMMIT');
 
@@ -158,14 +313,18 @@ const crearProfesional = async (data) => {
 // PUT
 const actualizarProfesional = async (id, data) => {
   const { 
-    nombre, apellido, sexo, cuil, matricula, email, telefono,
+    nombre, apellido, sexo, cuil, email, telefono,
     calle, numero, codigo_postal, piso, departamento,
-    provincia_nombre, localidad_nombre, foto_url, especialidad_id, horarios = []
+    provincia_nombre, localidad_nombre, foto_url, horarios = []
   } = data;
+  const especialidades = normalizarEspecialidadesProfesional(data);
+  const principal = especialidades.find((item) => item.es_principal);
+  const consultorioIds = normalizarConsultorioIds(data.consultorio_ids);
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
+    await validarConsultoriosProfesional(client, especialidades, consultorioIds);
 
     const result = await client.query(
       `UPDATE profesionales SET 
@@ -175,15 +334,17 @@ const actualizarProfesional = async (id, data) => {
         fecha_modificacion=CURRENT_TIMESTAMP 
        WHERE id=$17 RETURNING *`,
       [
-        nombre, apellido, sexo, cuil, matricula, email, telefono,
+        nombre, apellido, sexo, cuil, principal.matricula, email, telefono,
         calle, numero, codigo_postal, piso, departamento,
-        provincia_nombre, localidad_nombre, foto_url, especialidad_id,
+        provincia_nombre, localidad_nombre, foto_url, principal.especialidad_id,
         id
       ]
     );
 
     if (result.rows.length === 0) throw new Error('Profesional no encontrado');
 
+    await guardarEspecialidadesProfesional(client, id, especialidades);
+    await guardarConsultoriosProfesional(client, id, consultorioIds);
     await guardarHorariosProfesional(client, id, horarios);
     await client.query('COMMIT');
 

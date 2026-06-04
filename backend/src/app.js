@@ -15,7 +15,7 @@ const pacienteRoutes = require('./routes/paciente.routes');
 const profesionalRoutes = require('./routes/profesional.routes');
 const consultorioRoutes = require('./routes/consultorio.routes');
 const turnoRoutes = require('./routes/turnos.routes');
-const especialidadRoutes = require('.//routes/especialidades.routes');
+const especialidadRoutes = require('./routes/especialidades.routes');
 
 app.use('/pacientes', pacienteRoutes);
 app.use('/profesionales', profesionalRoutes);
