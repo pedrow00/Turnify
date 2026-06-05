@@ -12,7 +12,6 @@ const initialForm = {
   hora_fin: "",
   paciente_id: "",
   profesional_id: "",
-  consultorio_id: "",
   especialidad_id: "",
   estado: "confirmado",
   motivo_consulta: "",
@@ -90,7 +89,6 @@ const buildPayload = (form) => ({
   hora_fin: fromMinutes(toMinutes(form.hora_inicio) + DURACION_TURNO_MINUTOS),
   paciente_id: Number(form.paciente_id),
   profesional_id: Number(form.profesional_id),
-  consultorio_id: Number(form.consultorio_id),
   especialidad_id: Number(form.especialidad_id),
   estado: form.estado,
   motivo_consulta: form.motivo_consulta.trim() || null,
@@ -104,6 +102,7 @@ export default function Turno() {
   const [especialidades, setEspecialidades] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+  const [turnoDetalle, setTurnoDetalle] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [errors, setErrors] = useState({});
@@ -144,11 +143,12 @@ export default function Turno() {
   }, [cargarDatos]);
 
   useEffect(() => {
-    if (!turnoSeleccionado) return undefined;
+    if (!turnoSeleccionado && !turnoDetalle) return undefined;
 
     const handleEscape = (event) => {
       if (event.key === "Escape") {
         setTurnoSeleccionado(null);
+        setTurnoDetalle(null);
         setForm(initialForm);
         setErrors({});
         setSubmitError("");
@@ -157,7 +157,7 @@ export default function Turno() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [turnoSeleccionado]);
+  }, [turnoDetalle, turnoSeleccionado]);
 
   const turnosFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -194,37 +194,50 @@ export default function Turno() {
   const pacienteHabilitado = fechaHabilitada && Boolean(form.paciente_id);
   const especialidadHabilitada = pacienteHabilitado && Boolean(form.especialidad_id);
   const profesionalHabilitado = especialidadHabilitada && Boolean(form.profesional_id);
-  const consultorioHabilitado = profesionalHabilitado && Boolean(form.consultorio_id);
-  const horarioHabilitado = consultorioHabilitado && Boolean(form.hora_inicio);
+  const horarioHabilitado = profesionalHabilitado && Boolean(form.hora_inicio);
   const estadoHabilitado = horarioHabilitado && Boolean(form.estado);
   const puedeGuardar = estadoHabilitado && Boolean(form.motivo_consulta.trim()) && !guardando;
 
   const profesionalesFiltrados = useMemo(
     () =>
       profesionales.filter(
-        (profesional) => String(profesional.especialidad_id) === String(form.especialidad_id)
+        (profesional) => {
+          if (Array.isArray(profesional.especialidades) && profesional.especialidades.length > 0) {
+            return profesional.especialidades.some(
+              (especialidad) => String(especialidad.id) === String(form.especialidad_id)
+            );
+          }
+
+          return String(profesional.especialidad_id) === String(form.especialidad_id);
+        }
       ),
     [form.especialidad_id, profesionales]
-  );
-
-  const consultoriosFiltrados = useMemo(
-    () =>
-      consultorios.filter((consultorio) => {
-        if (consultorio.activo === false) return false;
-        if (!form.especialidad_id) return false;
-        if (!Array.isArray(consultorio.especialidades)) return true;
-
-        return consultorio.especialidades.some(
-          (especialidad) => String(especialidad.id) === String(form.especialidad_id)
-        );
-      }),
-    [consultorios, form.especialidad_id]
   );
 
   const profesionalSeleccionado = useMemo(
     () => profesionales.find((profesional) => String(profesional.id) === String(form.profesional_id)),
     [form.profesional_id, profesionales]
   );
+
+  const consultoriosProfesionalCompatibles = useMemo(() => {
+    if (!profesionalSeleccionado || !form.especialidad_id) return [];
+
+    const consultoriosAsignados = Array.isArray(profesionalSeleccionado.consultorios)
+      ? profesionalSeleccionado.consultorios
+      : [];
+
+    return consultoriosAsignados.filter((consultorioAsignado) => {
+      if (consultorioAsignado.activo === false) return false;
+
+      const consultorioCompleto = consultorios.find(
+        (consultorio) => String(consultorio.id) === String(consultorioAsignado.id)
+      );
+
+      return consultorioCompleto?.especialidades?.some(
+        (especialidad) => String(especialidad.id) === String(form.especialidad_id)
+      );
+    });
+  }, [consultorios, form.especialidad_id, profesionalSeleccionado]);
 
   const horariosLaboralesProfesional = useMemo(() => {
     if (!form.fecha || !profesionalSeleccionado?.horarios?.length) return [];
@@ -264,11 +277,13 @@ export default function Turno() {
       turnosDelDia
         .filter(
           (turno) =>
-            String(turno.consultorio_id) === String(form.consultorio_id) &&
+            consultoriosProfesionalCompatibles.some(
+              (consultorio) => String(consultorio.id) === String(turno.consultorio_id)
+            ) &&
             turno.estado !== "cancelado" &&
             String(turno.id) !== String(turnoSeleccionado?.id)
         ),
-    [form.consultorio_id, turnoSeleccionado?.id, turnosDelDia]
+    [consultoriosProfesionalCompatibles, turnoSeleccionado?.id, turnosDelDia]
   );
 
   const horariosDisponibles = useMemo(() => {
@@ -294,20 +309,23 @@ export default function Turno() {
         const ocupadoPaciente = turnosOcupadosPaciente.some((turno) =>
           rangesOverlap(inicio, fin, normalizeTime(turno.hora_inicio), normalizeTime(turno.hora_fin))
         );
-        const ocupadoConsultorio = turnosOcupadosConsultorio.some((turno) =>
+        const consultoriosOcupados = turnosOcupadosConsultorio.filter((turno) =>
           rangesOverlap(inicio, fin, normalizeTime(turno.hora_inicio), normalizeTime(turno.hora_fin))
         );
+        const hayConsultorioDisponible =
+          consultoriosProfesionalCompatibles.length > 0 &&
+          consultoriosOcupados.length < consultoriosProfesionalCompatibles.length;
 
         slots.push({
           inicio,
           fin,
-          disponible: !ocupadoProfesional && !ocupadoPaciente && !ocupadoConsultorio,
+          disponible: !ocupadoProfesional && !ocupadoPaciente && hayConsultorioDisponible,
           motivo: ocupadoProfesional
             ? "Profesional ocupado"
             : ocupadoPaciente
               ? "Paciente ocupado"
-              : ocupadoConsultorio
-                ? "Consultorio ocupado"
+              : !hayConsultorioDisponible
+                ? "Sin consultorio disponible"
                 : "Disponible",
         });
       }
@@ -316,6 +334,7 @@ export default function Turno() {
     return slots;
   }, [
     form.fecha,
+    consultoriosProfesionalCompatibles,
     horariosLaboralesProfesional,
     turnosOcupadosConsultorio,
     turnosOcupadosPaciente,
@@ -349,7 +368,6 @@ export default function Turno() {
         nextForm.paciente_id = "";
         nextForm.especialidad_id = "";
         nextForm.profesional_id = "";
-        nextForm.consultorio_id = "";
         nextForm.hora_inicio = "";
         nextForm.hora_fin = "";
       }
@@ -357,25 +375,17 @@ export default function Turno() {
       if (name === "paciente_id") {
         nextForm.especialidad_id = "";
         nextForm.profesional_id = "";
-        nextForm.consultorio_id = "";
         nextForm.hora_inicio = "";
         nextForm.hora_fin = "";
       }
 
       if (name === "especialidad_id") {
         nextForm.profesional_id = "";
-        nextForm.consultorio_id = "";
         nextForm.hora_inicio = "";
         nextForm.hora_fin = "";
       }
 
       if (name === "profesional_id") {
-        nextForm.consultorio_id = "";
-        nextForm.hora_inicio = "";
-        nextForm.hora_fin = "";
-      }
-
-      if (name === "consultorio_id") {
         nextForm.hora_inicio = "";
         nextForm.hora_fin = "";
       }
@@ -424,12 +434,17 @@ export default function Turno() {
       hora_fin: fin,
       paciente_id: String(turno.paciente_id ?? turno.paciente?.id ?? ""),
       profesional_id: String(turno.profesional_id ?? turno.profesional?.id ?? ""),
-      consultorio_id: String(turno.consultorio_id ?? turno.consultorio?.id ?? ""),
       especialidad_id: String(turno.especialidad_id ?? turno.especialidad?.id ?? ""),
       estado: turno.estado || "confirmado",
       motivo_consulta: turno.motivo_consulta ?? "",
     });
     setErrors({});
+    setSubmitError("");
+    setMensaje("");
+  };
+
+  const abrirDetalleTurno = (turno) => {
+    setTurnoDetalle(turno);
     setSubmitError("");
     setMensaje("");
   };
@@ -453,7 +468,6 @@ export default function Turno() {
     }
     if (!form.paciente_id) nuevosErrores.paciente_id = "Selecciona un paciente.";
     if (!form.profesional_id) nuevosErrores.profesional_id = "Selecciona un profesional.";
-    if (!form.consultorio_id) nuevosErrores.consultorio_id = "Selecciona un consultorio.";
     if (!form.especialidad_id) nuevosErrores.especialidad_id = "Selecciona una especialidad.";
     if (!form.hora_inicio) nuevosErrores.hora_inicio = "Selecciona un horario disponible.";
     if (!form.hora_fin) nuevosErrores.hora_fin = "El fin se calcula automaticamente.";
@@ -468,6 +482,10 @@ export default function Turno() {
 
     if (form.fecha && form.profesional_id && horariosLaboralesProfesional.length === 0) {
       nuevosErrores.hora_inicio = "El profesional no atiende en esa fecha.";
+    }
+
+    if (form.profesional_id && form.especialidad_id && consultoriosProfesionalCompatibles.length === 0) {
+      nuevosErrores.hora_inicio = "El profesional no tiene consultorios compatibles asignados.";
     }
 
     if (form.hora_inicio) {
@@ -624,8 +642,11 @@ export default function Turno() {
               }}
               selectable
               nowIndicator
-              hiddenDays={[0, 6]}
               events={calendarEvents}
+              dayCellClassNames={(info) => {
+                const fecha = dateToInputValue(info.date);
+                return isWeekend(fecha) ? ["turno-weekend-disabled"] : [];
+              }}
               dateClick={(info) => {
                 const fecha = dateToInputValue(info.date);
                 if (isWeekend(fecha) || isPastDate(fecha)) return;
@@ -642,17 +663,21 @@ export default function Turno() {
             </div>
             {turnosFiltrados.length > 0 ? (
               turnosFiltrados.map((turno) => (
-                <button
+                <div
                   key={turno.id}
-                  type="button"
                   className="turno-list-item"
-                  onClick={() => abrirEditarTurno(turno)}
                 >
                   <div>
                     <span className={`turno-status turno-status-${turno.estado || "confirmado"}`}>
                       {turno.estado || "confirmado"}
                     </span>
-                    <h3>{getTurnoPaciente(turno)}</h3>
+                    <button
+                      type="button"
+                      className="turno-patient-link"
+                      onClick={() => abrirDetalleTurno(turno)}
+                    >
+                      {getTurnoPaciente(turno)}
+                    </button>
                     <p>{getTurnoProfesional(turno)}</p>
                   </div>
                   <div className="turno-list-time">
@@ -660,8 +685,15 @@ export default function Turno() {
                     <span>
                       {new Date(`${normalizeDate(turno.fecha)}T00:00:00`).toLocaleDateString("es-AR")}
                     </span>
+                    <button
+                      type="button"
+                      className="turno-list-edit"
+                      onClick={() => abrirEditarTurno(turno)}
+                    >
+                      Editar
+                    </button>
                   </div>
-                </button>
+                </div>
               ))
             ) : (
               <div className="no-results">No se encontraron turnos</div>
@@ -760,26 +792,15 @@ export default function Turno() {
               ) : null}
             </div>
 
-            <div className="field">
-              <label htmlFor="consultorio_id">Consultorio</label>
-              <select
-                id="consultorio_id"
-                name="consultorio_id"
-                value={form.consultorio_id}
-                onChange={handleChange}
-                className={errors.consultorio_id ? "input-error" : ""}
-                disabled={guardando || !profesionalHabilitado}
-              >
-                <option value="">Selecciona un consultorio</option>
-                {consultoriosFiltrados.map((consultorio) => (
-                  <option key={consultorio.id} value={consultorio.id}>
-                    {consultorio.numero_consultorio} - Piso {consultorio.piso}
-                  </option>
-                ))}
-              </select>
-              {errors.consultorio_id ? (
-                <span className="field-error">{errors.consultorio_id}</span>
-              ) : null}
+            <div className="turno-auto-consultorio">
+              <span>Consultorio automatico</span>
+              <p>
+                {profesionalHabilitado
+                  ? consultoriosProfesionalCompatibles.length > 0
+                    ? `${consultoriosProfesionalCompatibles.length} consultorio(s) compatible(s) asignado(s)`
+                    : "Este profesional no tiene consultorios compatibles asignados"
+                  : "Se define al elegir profesional y especialidad"}
+              </p>
             </div>
 
             <div className="turno-slots">
@@ -796,8 +817,7 @@ export default function Turno() {
                       !form.fecha ||
                       !form.profesional_id ||
                       !form.paciente_id ||
-                      !form.especialidad_id ||
-                      !form.consultorio_id
+                      !form.especialidad_id
                     }
                     title={slot.motivo}
                   >
@@ -859,6 +879,107 @@ export default function Turno() {
           </form>
         </aside>
       </div>
+
+      {turnoDetalle ? (
+        <div
+          className="turno-modal-overlay"
+          onClick={() => setTurnoDetalle(null)}
+          role="presentation"
+        >
+          <div
+            className="turno-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="turno-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="turno-modal-close"
+              onClick={() => setTurnoDetalle(null)}
+              aria-label="Cerrar detalle del turno"
+            >
+              x
+            </button>
+
+            <div className="turno-modal-header">
+              <div className="turno-modal-avatar">
+                {getTurnoPaciente(turnoDetalle)
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((segmento) => segmento[0])
+                  .join("")
+                  .slice(0, 2)}
+              </div>
+              <div>
+                <span className={`turno-status turno-status-${turnoDetalle.estado || "confirmado"}`}>
+                  {turnoDetalle.estado || "confirmado"}
+                </span>
+                <h2 id="turno-modal-title">{getTurnoPaciente(turnoDetalle)}</h2>
+                <p>
+                  {new Date(`${normalizeDate(turnoDetalle.fecha)}T00:00:00`).toLocaleDateString("es-AR")} -{" "}
+                  {normalizeTime(turnoDetalle.hora_inicio)} a {normalizeTime(turnoDetalle.hora_fin)}
+                </p>
+              </div>
+            </div>
+
+            <div className="turno-modal-grid">
+              <div className="turno-modal-item">
+                <span className="label">Paciente</span>
+                <span className="value">{getTurnoPaciente(turnoDetalle)}</span>
+              </div>
+              <div className="turno-modal-item">
+                <span className="label">Profesional</span>
+                <span className="value">{getTurnoProfesional(turnoDetalle)}</span>
+              </div>
+              <div className="turno-modal-item">
+                <span className="label">Especialidad</span>
+                <span className="value">{turnoDetalle.especialidad?.nombre || "Sin dato"}</span>
+              </div>
+              <div className="turno-modal-item">
+                <span className="label">Consultorio</span>
+                <span className="value">
+                  {turnoDetalle.consultorio?.numero_consultorio
+                    ? `Consultorio ${turnoDetalle.consultorio.numero_consultorio}`
+                    : "Sin dato"}
+                </span>
+              </div>
+              <div className="turno-modal-item">
+                <span className="label">Fecha</span>
+                <span className="value">
+                  {new Date(`${normalizeDate(turnoDetalle.fecha)}T00:00:00`).toLocaleDateString("es-AR")}
+                </span>
+              </div>
+              <div className="turno-modal-item">
+                <span className="label">Horario</span>
+                <span className="value">
+                  {normalizeTime(turnoDetalle.hora_inicio)} a {normalizeTime(turnoDetalle.hora_fin)}
+                </span>
+              </div>
+              <div className="turno-modal-item turno-modal-item-full">
+                <span className="label">Motivo de consulta</span>
+                <span className="value">{turnoDetalle.motivo_consulta || "Sin dato"}</span>
+              </div>
+            </div>
+
+            <div className="turno-modal-actions">
+              <button type="button" className="btn-secondary" onClick={() => setTurnoDetalle(null)}>
+                Cerrar
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  setTurnoDetalle(null);
+                  abrirEditarTurno(turnoDetalle);
+                }}
+              >
+                Editar turno
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
