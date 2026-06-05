@@ -4,6 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import "../styles/Turno.css";
+import { apiDelete, apiGet, apiPost, apiPut } from "../utils/api";
 
 const initialForm = {
   fecha: "",
@@ -96,7 +97,6 @@ const buildPayload = (form) => ({
 });
 
 export default function Turno() {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [turnos, setTurnos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [profesionales, setProfesionales] = useState([]);
@@ -117,22 +117,14 @@ export default function Turno() {
     try {
       setLoading(true);
       setLoadError("");
-      const [turnosRes, pacientesRes, profesionalesRes, consultoriosRes, especialidadesRes] =
-        await Promise.all([
-          fetch(`${apiUrl}/turnos`),
-          fetch(`${apiUrl}/pacientes`),
-          fetch(`${apiUrl}/profesionales`),
-          fetch(`${apiUrl}/consultorios`),
-          fetch(`${apiUrl}/especialidades`),
-        ]);
-
-      const responses = [turnosRes, pacientesRes, profesionalesRes, consultoriosRes, especialidadesRes];
-      if (responses.some((response) => !response.ok)) {
-        throw new Error("No se pudieron cargar todos los datos necesarios para turnos.");
-      }
-
       const [turnosData, pacientesData, profesionalesData, consultoriosData, especialidadesData] =
-        await Promise.all(responses.map((response) => response.json()));
+        await Promise.all([
+          apiGet("/turnos"),
+          apiGet("/pacientes"),
+          apiGet("/profesionales"),
+          apiGet("/consultorios"),
+          apiGet("/especialidades"),
+        ]);
 
       setTurnos(turnosData.filter((turno) => normalizeDate(turno.fecha) >= todayInputValue()));
       setPacientes(sortByName(pacientesData));
@@ -144,7 +136,7 @@ export default function Turno() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -503,18 +495,12 @@ export default function Turno() {
       setMensaje("");
 
       const isEditing = Boolean(turnoSeleccionado?.id);
-      const response = await fetch(
-        isEditing ? `${apiUrl}/turnos/${turnoSeleccionado.id}` : `${apiUrl}/turnos`,
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildPayload(form)),
-        }
-      );
+      const payload = buildPayload(form);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo guardar el turno.");
+      if (isEditing) {
+        await apiPut(`/turnos/${turnoSeleccionado.id}`, payload);
+      } else {
+        await apiPost("/turnos", payload);
       }
 
       await cargarDatos();
@@ -535,14 +521,7 @@ export default function Turno() {
     try {
       setGuardando(true);
       setSubmitError("");
-      const response = await fetch(`${apiUrl}/turnos/${turnoSeleccionado.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo eliminar el turno.");
-      }
+      await apiDelete(`/turnos/${turnoSeleccionado.id}`);
 
       await cargarDatos();
       setMensaje("Turno eliminado correctamente.");

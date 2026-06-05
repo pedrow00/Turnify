@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegistrarPaciente.css";
+import { apiPost } from "../utils/api";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 
@@ -25,7 +26,6 @@ const initialForm = {
 
 export default function RegistrarPaciente() {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
@@ -249,19 +249,7 @@ export default function RegistrarPaciente() {
         observaciones: form.observaciones.trim() || null,
       };
 
-      const response = await fetch(`${apiUrl}/pacientes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo registrar el paciente.");
-      }
-
+      await apiPost("/pacientes", payload);
       navigate("/paciente");
     } catch (error) {
       setSubmitError(error.message || "No se pudo registrar el paciente.");

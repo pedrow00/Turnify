@@ -1,38 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../styles/Register.css";
+
+const ROLES = [
+  { id: 2, label: "Socio" },
+  { id: 3, label: "Secretaria" },
+  { id: 4, label: "Profesional" },
+];
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
     email: "",
     password: "",
     confirmPassword: "",
-    rol: "paciente"
+    rol_id: "3",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { user, register } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/turno", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      setError("Las contraseñas no coinciden");
       return;
     }
 
     setLoading(true);
-    
-    // Simulación de registro - reemplazar con llamada real al backend
-    setTimeout(() => {
+    setError("");
+
+    try {
+      await register(formData.email, formData.password, Number(formData.rol_id));
+      navigate("/login", { state: { registered: true } });
+    } catch (err) {
+      setError(err.message || "No se pudo crear la cuenta");
+    } finally {
       setLoading(false);
-      navigate("/login");
-    }, 1000);
+    }
   };
 
   return (
@@ -48,33 +66,7 @@ export default function Register() {
         </div>
 
         <form className="register-form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="nombre">Nombre</label>
-              <input
-                type="text"
-                id="nombre"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                placeholder="Juan"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="apellido">Apellido</label>
-              <input
-                type="text"
-                id="apellido"
-                name="apellido"
-                value={formData.apellido}
-                onChange={handleChange}
-                placeholder="Pérez"
-                required
-              />
-            </div>
-          </div>
+          {error ? <div className="submit-error">{error}</div> : null}
 
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -90,16 +82,18 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="rol">Tipo de Usuario</label>
+            <label htmlFor="rol_id">Tipo de usuario</label>
             <select
-              id="rol"
-              name="rol"
-              value={formData.rol}
+              id="rol_id"
+              name="rol_id"
+              value={formData.rol_id}
               onChange={handleChange}
             >
-              <option value="paciente">Paciente</option>
-              <option value="profesional">Profesional</option>
-              <option value="admin">Administrador</option>
+              {ROLES.map((rol) => (
+                <option key={rol.id} value={rol.id}>
+                  {rol.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -118,7 +112,7 @@ export default function Register() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirmar Contraseña</label>
+              <label htmlFor="confirmPassword">Confirmar contraseña</label>
               <input
                 type="password"
                 id="confirmPassword"
@@ -137,7 +131,9 @@ export default function Register() {
         </form>
 
         <div className="register-footer">
-          <p>¿Ya tenés cuenta? <Link to="/login">Iniciar Sesión</Link></p>
+          <p>
+            ¿Ya tenés cuenta? <Link to="/login">Iniciar Sesión</Link>
+          </p>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "../styles/RegistrarPaciente.css";
+import { apiGet, apiPut } from "../utils/api";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 
@@ -26,7 +27,6 @@ const initialForm = {
 export default function EditarPaciente() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
   const [errors, setErrors] = useState({});
@@ -72,14 +72,7 @@ export default function EditarPaciente() {
       setSubmitError("");
       setLoadError("");
 
-      const response = await fetch(`${apiUrl}/pacientes/${id}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo cargar el paciente.");
-      }
-
-      const paciente = await response.json();
+      const paciente = await apiGet(`/pacientes/${id}`);
       const nextForm = {
         nombre: paciente.nombre ?? "",
         apellido: paciente.apellido ?? "",
@@ -108,7 +101,7 @@ export default function EditarPaciente() {
     } finally {
       setLoadingPaciente(false);
     }
-  }, [apiUrl, id]);
+  }, [id]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -302,19 +295,7 @@ export default function EditarPaciente() {
         observaciones: form.observaciones.trim() || null,
       };
 
-      const response = await fetch(`${apiUrl}/pacientes/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo actualizar el paciente.");
-      }
-
+      await apiPut(`/pacientes/${id}`, payload);
       setInitialSnapshot(JSON.stringify(payload));
       navigate("/paciente");
     } catch (error) {

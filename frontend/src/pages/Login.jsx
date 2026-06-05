@@ -1,22 +1,36 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../styles/Login.css";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, login } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate(location.state?.from?.pathname || "/turno", { replace: true });
+    }
+  }, [user, navigate, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulación de login - reemplazar con llamada real al backend
-    setTimeout(() => {
+    setError("");
+
+    try {
+      await login(email, password);
+      navigate(location.state?.from?.pathname || "/turno", { replace: true });
+    } catch (err) {
+      setError(err.message || "No se pudo iniciar sesión");
+    } finally {
       setLoading(false);
-      navigate("/dashboard"); // Cambiar a la ruta que corresponda
-    }, 1000);
+    }
   };
 
   return (
@@ -32,6 +46,8 @@ export default function Login() {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
+          {error ? <div className="submit-error">{error}</div> : null}
+
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -56,23 +72,15 @@ export default function Login() {
             />
           </div>
 
-          <div className="form-options">
-            <label className="checkbox-label">
-              <input type="checkbox" />
-              <span>Recordarme</span>
-            </label>
-            <Link to="/forgot-password" className="forgot-link">
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-
           <button type="submit" className="btn-login" disabled={loading}>
             {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
         </form>
 
         <div className="login-footer">
-          <p>¿No tenés cuenta? <Link to="/register">Crear cuenta</Link></p>
+          <p>
+            ¿No tenés cuenta? <Link to="/register">Crear cuenta</Link>
+          </p>
         </div>
       </div>
     </div>

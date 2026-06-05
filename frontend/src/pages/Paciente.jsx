@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { canAccess } from "../utils/permisos";
 import "../styles/Paciente.css";
+import { apiGet } from "../utils/api";
 
 export default function Paciente() {
+  const { user } = useAuth();
+  const puedeEditar = canAccess(user?.rol, "pacienteWrite");
   const [busqueda, setBusqueda] = useState("");
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
-        const response = await fetch(`${apiUrl}/pacientes`);
-        const data = await response.json();
+        const data = await apiGet("/pacientes");
         setPacientes(data);
       } catch {
         setError("Error al cargar pacientes");
@@ -24,7 +27,7 @@ export default function Paciente() {
     };
 
     cargarPacientes();
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     if (!pacienteSeleccionado) {
@@ -84,9 +87,11 @@ export default function Paciente() {
             <h1>Pacientes</h1>
             <p>Gestiona los pacientes del centro de salud</p>
           </div>
-          <Link to="/paciente/nuevo" className="btn-nuevo">
-            + Nuevo Paciente
-          </Link>
+          {puedeEditar && (
+            <Link to="/paciente/nuevo" className="btn-nuevo">
+              + Nuevo Paciente
+            </Link>
+          )}
         </div>
 
         <div className="paciente-filters">
@@ -153,9 +158,11 @@ export default function Paciente() {
                   >
                     Ver
                   </button>
-                  <Link to={`/paciente/${pac.id}/editar`} className="btn-editar">
-                    Editar
-                  </Link>
+                  {puedeEditar && (
+                    <Link to={`/paciente/${pac.id}/editar`} className="btn-editar">
+                      Editar
+                    </Link>
+                  )}
                 </div>
               </div>
             ))
@@ -274,12 +281,14 @@ export default function Paciente() {
               >
                 Cerrar
               </button>
-              <Link
-                to={`/paciente/${pacienteSeleccionado.id}/editar`}
-                className="btn-ver paciente-modal-button"
-              >
-                Editar paciente
-              </Link>
+              {puedeEditar && (
+                <Link
+                  to={`/paciente/${pacienteSeleccionado.id}/editar`}
+                  className="btn-ver paciente-modal-button"
+                >
+                  Editar paciente
+                </Link>
+              )}
             </div>
           </div>
         </div>

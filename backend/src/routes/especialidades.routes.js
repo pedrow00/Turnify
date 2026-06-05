@@ -8,14 +8,15 @@ const {
   updateEspecialidad,
   deleteEspecialidad
 } = require('../controllers/especialidades.controller')
+const { requireRole, requireAuth } = require('../utils/authMiddleware');
 
-router.get('/',getEspecialidades);
-router.get('/:id', getEspecialidad);
+router.get('/', requireAuth, requireRole(['secretaria', 'socio', 'admin']), getEspecialidades);
+router.get('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), getEspecialidad);
 
-router.post('/', createEspecialidad);
+router.post('/', requireAuth, requireRole(['secretaria', 'socio', 'admin']), createEspecialidad);
 
-router.put('/:id', updateEspecialidad);
+router.put('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), updateEspecialidad);
 
-router.delete('/:id', deleteEspecialidad);
+router.delete('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), deleteEspecialidad);
 
 module.exports = router;

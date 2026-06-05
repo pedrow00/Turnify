@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Consultorio.css";
+import { apiGet } from "../utils/api";
 
 export default function Consultorio() {
   const [busqueda, setBusqueda] = useState("");
@@ -8,14 +9,11 @@ export default function Consultorio() {
   const [consultorioSeleccionado, setConsultorioSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-  // 🔹 Cargar consultorios
   useEffect(() => {
     const cargarConsultorios = async () => {
       try {
-        const response = await fetch(`${apiUrl}/consultorios`);
-        const data = await response.json();
+        const data = await apiGet("/consultorios");
         setConsultorios(data);
       } catch {
         setError("Error al cargar consultorios");
@@ -25,7 +23,7 @@ export default function Consultorio() {
     };
 
     cargarConsultorios();
-  }, [apiUrl]);
+  }, []);
 
   // 🔹 Cerrar modal con ESC
   useEffect(() => {

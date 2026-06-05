@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/RegistrarConsultorio.css";
+import { apiGet, apiPost } from "../utils/api";
 
 const initialForm = {
   numero_consultorio: "",
@@ -12,7 +13,6 @@ const initialForm = {
 
 export default function RegistrarConsultorio() {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
@@ -24,13 +24,7 @@ export default function RegistrarConsultorio() {
   useEffect(() => {
     const cargarEspecialidades = async () => {
       try {
-        const response = await fetch(`${apiUrl}/especialidades`);
-
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar las especialidades.");
-        }
-
-        const data = await response.json();
+        const data = await apiGet("/especialidades");
         setEspecialidades(data);
       } catch (error) {
         setSubmitError(error.message);
@@ -40,7 +34,7 @@ export default function RegistrarConsultorio() {
     };
 
     cargarEspecialidades();
-  }, [apiUrl]);
+  }, []);
 
   const clearFieldError = (field) => {
     if (!errors[field]) return;
@@ -117,19 +111,7 @@ export default function RegistrarConsultorio() {
         especialidad_ids: form.especialidad_ids,
       };
 
-      const response = await fetch(`${apiUrl}/consultorios`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo registrar el consultorio.");
-      }
-
+      await apiPost("/consultorios", payload);
       navigate("/consultorio");
     } catch (error) {
       setSubmitError(error.message);

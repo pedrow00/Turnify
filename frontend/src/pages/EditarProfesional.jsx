@@ -8,6 +8,7 @@ import {
   normalizarHorariosDesdeApi,
   prepararHorariosPayload,
 } from "../utils/horariosProfesionales";
+import { apiGet, apiPut } from "../utils/api";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 const FOTO_MAX_SIZE = 2 * 1024 * 1024;
@@ -36,7 +37,6 @@ export default function EditarProfesional() {
   const { id } = useParams();
   const navigate = useNavigate();
   const fotoInputRef = useRef(null);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
   const [horarios, setHorarios] = useState([crearHorarioVacio()]);
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
@@ -55,13 +55,7 @@ export default function EditarProfesional() {
   useEffect(() => {
     const cargarEspecialidades = async () => {
       try {
-        const response = await fetch(`${apiUrl}/especialidades`);
-
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar las especialidades");
-        }
-
-        const data = await response.json();
+        const data = await apiGet("/especialidades");
         setEspecialidades(data);
       } catch {
         setSubmitError("No se pudieron cargar las especialidades.");
@@ -71,7 +65,7 @@ export default function EditarProfesional() {
     };
 
     cargarEspecialidades();
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     const cargarProvincias = async () => {
@@ -106,14 +100,7 @@ export default function EditarProfesional() {
       setSubmitError("");
       setLoadError("");
 
-      const response = await fetch(`${apiUrl}/profesionales/${id}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo cargar el profesional.");
-      }
-
-      const profesional = await response.json();
+      const profesional = await apiGet(`/profesionales/${id}`);
       const nextHorarios = normalizarHorariosDesdeApi(profesional.horarios);
       const nextForm = {
         nombre: profesional.nombre ?? "",
@@ -147,7 +134,7 @@ export default function EditarProfesional() {
     } finally {
       setLoadingProfesional(false);
     }
-  }, [apiUrl, id]);
+  }, [id]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -405,18 +392,7 @@ export default function EditarProfesional() {
         horarios: prepararHorariosPayload(horarios),
       };
 
-      const response = await fetch(`${apiUrl}/profesionales/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo actualizar el profesional.");
-      }
+      await apiPut(`/profesionales/${id}`, payload);
 
       setInitialSnapshot(
         JSON.stringify({

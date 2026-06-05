@@ -7,6 +7,7 @@ import {
   getHorariosError,
   prepararHorariosPayload,
 } from "../utils/horariosProfesionales";
+import { apiGet, apiPost } from "../utils/api";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
 const FOTO_MAX_SIZE = 2 * 1024 * 1024;
@@ -33,7 +34,6 @@ const initialForm = {
 
 export default function RegistrarProfesional() {
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
   const [form, setForm] = useState(initialForm);
   const [horarios, setHorarios] = useState([crearHorarioVacio()]);
   const [errors, setErrors] = useState({});
@@ -49,13 +49,7 @@ export default function RegistrarProfesional() {
   useEffect(() => {
     const cargarEspecialidades = async () => {
       try {
-        const response = await fetch(`${apiUrl}/especialidades`);
-
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar las especialidades");
-        }
-
-        const data = await response.json();
+        const data = await apiGet("/especialidades");
         setEspecialidades(data);
       } catch {
         setSubmitError("No se pudieron cargar las especialidades.");
@@ -65,7 +59,7 @@ export default function RegistrarProfesional() {
     };
 
     cargarEspecialidades();
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     const cargarProvincias = async () => {
@@ -339,19 +333,7 @@ export default function RegistrarProfesional() {
         horarios: prepararHorariosPayload(horarios),
       };
 
-      const response = await fetch(`${apiUrl}/profesionales`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "No se pudo registrar el profesional.");
-      }
-
+      await apiPost("/profesionales", payload);
       navigate("/profesional");
     } catch (error) {
       setSubmitError(error.message || "No se pudo registrar el profesional.");

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "../styles/RegistrarConsultorio.css";
+import { apiGet, apiPut } from "../utils/api";
 
 const initialForm = {
   numero_consultorio: "",
@@ -13,7 +14,6 @@ const initialForm = {
 export default function EditarConsultorio() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const [form, setForm] = useState(initialForm);
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
@@ -30,22 +30,9 @@ export default function EditarConsultorio() {
       setLoading(true);
       setLoadError("");
 
-      const [consultorioResponse, especialidadesResponse] = await Promise.all([
-        fetch(`${apiUrl}/consultorios/${id}`),
-        fetch(`${apiUrl}/especialidades`),
-      ]);
-
-      if (!consultorioResponse.ok) {
-        throw new Error("No se pudo cargar el consultorio");
-      }
-
-      if (!especialidadesResponse.ok) {
-        throw new Error("No se pudieron cargar las especialidades");
-      }
-
       const [data, especialidadesData] = await Promise.all([
-        consultorioResponse.json(),
-        especialidadesResponse.json(),
+        apiGet(`/consultorios/${id}`),
+        apiGet("/especialidades"),
       ]);
 
       const nextForm = {
@@ -64,7 +51,7 @@ export default function EditarConsultorio() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, id]);
+  }, [id]);
 
   useEffect(() => {
     cargarConsultorio();
@@ -139,18 +126,7 @@ export default function EditarConsultorio() {
         especialidad_ids: form.especialidad_ids,
       };
 
-      const response = await fetch(`${apiUrl}/consultorios/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("No se pudo actualizar");
-      }
-
+      await apiPut(`/consultorios/${id}`, payload);
       navigate("/consultorio");
     } catch (error) {
       setSubmitError(error.message);

@@ -175,7 +175,18 @@ CREATE TABLE turnos (
     CHECK (EXTRACT(ISODOW FROM fecha) BETWEEN 1 AND 5)
 );
 
-------------------USUARIOS---------------------------
+------------------USUARIOS Y ROLES---------------------------
+
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL
+);
+INSERT INTO roles (nombre) VALUES
+('admin'),
+('socio'),
+('secretaria'),
+('profesional');
+
 
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
@@ -185,19 +196,3 @@ CREATE TABLE usuarios (
     rol_id INT,
     FOREIGN KEY (rol_id) REFERENCES roles(id)
 );
-
-CREATE TABLE roles (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) UNIQUE NOT NULL
-);
-INSERT INTO roles (nombre) VALUES
-('Admin'),
-('Socio'),
-('Secretaria'),
-('Profesional');
-
-
-SELECT * FROM roles;
-DROP TABLE usuarios
-
-

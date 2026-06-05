@@ -92,6 +92,17 @@
   margin-right: 32px;
 }
 
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
 .btn-login {
   padding: 10px 20px;
   background: var(--primary);

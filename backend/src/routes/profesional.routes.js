@@ -6,12 +6,12 @@ const {getProfesionales,
     createProfesional, 
     updateProfesional, 
     deleteProfesional} = require('../controllers/profesional.controller');
-
+const { requireRole, requireAuth } = require('../utils/authMiddleware');
 // GET
-router.get('/', getProfesionales);
-router.get('/:id', getProfesional);
-router.post('/', createProfesional);
-router.put('/:id', updateProfesional);
-router.delete('/:id', deleteProfesional);
+router.get('/', requireAuth, requireRole(['secretaria', 'socio', 'admin']), getProfesionales);
+router.get('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), getProfesional);
+router.post('/', requireAuth, requireRole(['secretaria', 'socio', 'admin']), createProfesional);
+router.put('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), updateProfesional);
+router.delete('/:id', requireAuth, requireRole(['secretaria', 'socio', 'admin']), deleteProfesional);
 
 module.exports = router;

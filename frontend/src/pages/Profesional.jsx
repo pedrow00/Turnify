@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Profesional.css";
 import { formatHorario } from "../utils/horariosProfesionales";
+import { apiGet } from "../utils/api";
 
 export default function Profesional() {
   const [busqueda, setBusqueda] = useState("");
@@ -11,23 +12,13 @@ export default function Profesional() {
   const [profesionalSeleccionado, setProfesionalSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     const cargarProfesionales = async () => {
       try {
-        const [profesionalesResponse, especialidadesResponse] = await Promise.all([
-          fetch(`${apiUrl}/profesionales`),
-          fetch(`${apiUrl}/especialidades`),
-        ]);
-
-        if (!profesionalesResponse.ok || !especialidadesResponse.ok) {
-          throw new Error("No se pudieron cargar los profesionales");
-        }
-
         const [profesionalesData, especialidadesData] = await Promise.all([
-          profesionalesResponse.json(),
-          especialidadesResponse.json(),
+          apiGet("/profesionales"),
+          apiGet("/especialidades"),
         ]);
 
         setProfesionales(profesionalesData);
@@ -40,7 +31,7 @@ export default function Profesional() {
     };
 
     cargarProfesionales();
-  }, [apiUrl]);
+  }, []);
 
   useEffect(() => {
     if (!profesionalSeleccionado) {
