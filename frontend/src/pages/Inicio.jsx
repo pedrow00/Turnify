@@ -26,29 +26,6 @@ export default function Inicio() {
             <Link to="/about" className="btn-secondary">Más información</Link>
           </div>
         </div>
-        <div className="hero-visual">
-          <div className="card-float">
-            <div className="card-icon">📅</div>
-            <div className="card-text">
-              <strong>Turnos</strong>
-              <span>Gestión rápida</span>
-            </div>
-          </div>
-          <div className="card-float card-2">
-            <div className="card-icon">👨‍⚕️</div>
-            <div className="card-text">
-              <strong>Profesionales</strong>
-              <span>Agenda disponible</span>
-            </div>
-          </div>
-          <div className="card-float card-3">
-            <div className="card-icon">🧑‍🤝‍🧑</div>
-            <div className="card-text">
-              <strong>Pacientes</strong>
-              <span>Historial completo</span>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Features Section */}

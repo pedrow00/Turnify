@@ -102,6 +102,16 @@ CREATE TABLE horarios_profesionales (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+CREATE TABLE profesional_consultorios (
+    id SERIAL PRIMARY KEY,
+
+    profesional_id INTEGER NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    consultorio_id INTEGER NOT NULL REFERENCES consultorios(id) ON DELETE CASCADE,
+
+    UNIQUE(profesional_id, consultorio_id)
+);
+
 INSERT INTO obras_sociales (nombre) VALUES
 ('OSDE'),
 ('IOMA'),

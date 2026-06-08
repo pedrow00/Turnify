@@ -12,6 +12,7 @@ import Profesional from "./pages/Profesional";
 import RegistrarProfesional from "./pages/RegistrarProfesional";
 import EditarProfesional from "./pages/EditarProfesional";
 import Turno from "./pages/Turno";
+import ListadoTurnos from "./pages/ListadoTurnos";
 import Navbar from "./components/Navbar";
 import Consultorio from "./pages/Consultorio";
 import RegistrarConsultorio from "./pages/RegistrarConsultorio";
@@ -79,6 +80,14 @@ function App() {
             element={
               <ProtectedRoute permission="turno">
                 <Turno />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/turno/listado"
+            element={
+              <ProtectedRoute permission="turno">
+                <ListadoTurnos />
               </ProtectedRoute>
             }
           />

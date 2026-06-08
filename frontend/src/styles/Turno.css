@@ -20,6 +20,17 @@
 }
 
 .turno-header .btn-nuevo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--primary, #2563eb);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
   border: 0;
   cursor: pointer;
 }
@@ -238,23 +249,60 @@
 }
 
 .turno-event-confirmado {
-  background: #2563eb;
+  background: #266bff;
 }
 
 .turno-event-pendiente {
-  background: #ca8a04;
+  background: #f5e12c;
 }
 
 .turno-event-cancelado {
-  background: #dc2626;
+  background: #fa4242;
 }
 
 .turno-event-finalizado {
-  background: #16a34a;
+  background: rgb(16, 226, 89);
 }
 
 .turno-list {
   margin-top: 22px;
+}
+
+.turno-calendar-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.btn-ver-turnos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--primary, #2563eb);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.btn-ver-turnos:hover {
+  transform: translateY(-1px);
+}
+
+.turno-list-page-panel {
+  padding: 20px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--white, #fff);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.turno-list-page-panel .turno-list {
+  margin-top: 0;
 }
 
 .turno-list .section-heading {
