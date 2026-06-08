@@ -3,65 +3,32 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../styles/Turno.css";
 import { apiDelete, apiGet, apiPost, apiPut } from "../utils/api";
-
-const initialForm = {
-  fecha: "",
-  hora_inicio: "",
-  hora_fin: "",
-  paciente_id: "",
-  profesional_id: "",
-  especialidad_id: "",
-  estado: "confirmado",
-  motivo_consulta: "",
-};
-
-const estadosTurno = ["confirmado", "pendiente", "cancelado", "finalizado"];
-const DURACION_TURNO_MINUTOS = 15;
-const diasPorIndice = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-
-const padTime = (value) => String(value).padStart(2, "0");
-
-const normalizeTime = (time) => String(time || "").slice(0, 5);
-
-const toMinutes = (time) => {
-  const [hours, minutes] = normalizeTime(time).split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
-const fromMinutes = (minutes) => `${padTime(Math.floor(minutes / 60))}:${padTime(minutes % 60)}`;
-
-const dateToInputValue = (date) => {
-  if (!date) return "";
-  const nextDate = new Date(date);
-  return `${nextDate.getFullYear()}-${padTime(nextDate.getMonth() + 1)}-${padTime(nextDate.getDate())}`;
-};
-
-const normalizeDate = (date) => {
-  if (!date) return "";
-  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.test(date)) {
-    return date.slice(0, 10);
-  }
-  return dateToInputValue(date);
-};
-
-const todayInputValue = () => dateToInputValue(new Date());
-
-const getDiaSemana = (dateValue) => {
-  if (!dateValue) return "";
-  return diasPorIndice[new Date(`${dateValue}T12:00:00`).getDay()];
-};
-
-const isWeekend = (dateValue) => {
-  const dia = getDiaSemana(dateValue);
-  return dia === "sabado" || dia === "domingo";
-};
-
-const isPastDate = (dateValue) => Boolean(dateValue) && dateValue < todayInputValue();
-
-const rangesOverlap = (inicioA, finA, inicioB, finB) =>
-  toMinutes(inicioA) < toMinutes(finB) && toMinutes(inicioB) < toMinutes(finA);
+import {
+  DURACION_TURNO_MINUTOS,
+  buildTurnoPayload,
+  dateToInputValue,
+  estadosTurno,
+  fromMinutes,
+  formatEstado,
+  getDiaSemana,
+  getNombreCompleto,
+  getTurnoPaciente,
+  getTurnoProfesional,
+  initialTurnoForm,
+  isPastDate,
+  isWeekend,
+  normalizeDia,
+  normalizeDate,
+  normalizeEstado,
+  normalizeTime,
+  rangesOverlap,
+  sortByName,
+  todayInputValue,
+  toMinutes,
+} from "../utils/turnos";
 
 const openDatePicker = (event) => {
   try {
@@ -71,36 +38,15 @@ const openDatePicker = (event) => {
   }
 };
 
-const getNombreCompleto = (persona) =>
-  `${persona?.nombre ?? ""} ${persona?.apellido ?? ""}`.trim() || "Sin nombre";
-
-const getTurnoPaciente = (turno) =>
-  turno.paciente ? getNombreCompleto(turno.paciente) : `Paciente #${turno.paciente_id}`;
-
-const getTurnoProfesional = (turno) =>
-  turno.profesional ? getNombreCompleto(turno.profesional) : `Profesional #${turno.profesional_id}`;
-
-const sortByName = (items) =>
-  [...items].sort((a, b) => getNombreCompleto(a).localeCompare(getNombreCompleto(b)));
-
-const buildPayload = (form) => ({
-  fecha: form.fecha,
-  hora_inicio: form.hora_inicio,
-  hora_fin: fromMinutes(toMinutes(form.hora_inicio) + DURACION_TURNO_MINUTOS),
-  paciente_id: Number(form.paciente_id),
-  profesional_id: Number(form.profesional_id),
-  especialidad_id: Number(form.especialidad_id),
-  estado: form.estado,
-  motivo_consulta: form.motivo_consulta.trim() || null,
-});
-
 export default function Turno() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [turnos, setTurnos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [profesionales, setProfesionales] = useState([]);
   const [consultorios, setConsultorios] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(initialTurnoForm);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [turnoDetalle, setTurnoDetalle] = useState(null);
   const [busqueda, setBusqueda] = useState("");
@@ -149,7 +95,7 @@ export default function Turno() {
       if (event.key === "Escape") {
         setTurnoSeleccionado(null);
         setTurnoDetalle(null);
-        setForm(initialForm);
+        setForm(initialTurnoForm);
         setErrors({});
         setSubmitError("");
       }
@@ -163,7 +109,7 @@ export default function Turno() {
     const termino = busqueda.trim().toLowerCase();
 
     return turnos.filter((turno) => {
-      const coincideEstado = filtroEstado === "todos" || turno.estado === filtroEstado;
+      const coincideEstado = filtroEstado === "todos" || normalizeEstado(turno.estado) === filtroEstado;
       if (!coincideEstado) return false;
 
       if (!termino) return true;
@@ -245,7 +191,7 @@ export default function Turno() {
     const diaSemana = getDiaSemana(form.fecha);
 
     return profesionalSeleccionado.horarios.filter(
-      (horario) => horario.activo !== false && String(horario.dia).toLowerCase() === diaSemana
+      (horario) => horario.activo !== false && normalizeDia(horario.dia) === normalizeDia(diaSemana)
     );
   }, [form.fecha, profesionalSeleccionado]);
 
@@ -346,7 +292,7 @@ export default function Turno() {
     title: `${normalizeTime(turno.hora_inicio)} ${getTurnoPaciente(turno)}`,
     start: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_inicio)}:00`,
     end: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_fin)}:00`,
-    className: `turno-event turno-event-${turno.estado || "confirmado"}`,
+    className: `turno-event turno-event-${normalizeEstado(turno.estado)}`,
     extendedProps: { turno },
   }));
 
@@ -413,7 +359,7 @@ export default function Turno() {
   const abrirNuevoTurno = (fecha = "") => {
     setTurnoSeleccionado(null);
     setForm({
-      ...initialForm,
+      ...initialTurnoForm,
       fecha,
       hora_inicio: "",
       hora_fin: "",
@@ -443,15 +389,30 @@ export default function Turno() {
     setMensaje("");
   };
 
-  const abrirDetalleTurno = (turno) => {
-    setTurnoDetalle(turno);
-    setSubmitError("");
-    setMensaje("");
-  };
+  useEffect(() => {
+    const turnoIdParaEditar = location.state?.editarTurnoId;
+    if (!turnoIdParaEditar || turnos.length === 0) return;
+
+    const turnoParaEditar = turnos.find((turno) => String(turno.id) === String(turnoIdParaEditar));
+    if (!turnoParaEditar) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    abrirEditarTurno(turnoParaEditar);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state?.editarTurnoId, navigate, turnos]);
+
+  useEffect(() => {
+    const fechaNuevoTurno = location.state?.fechaNuevoTurno;
+    if (!fechaNuevoTurno) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    abrirNuevoTurno(fechaNuevoTurno);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state?.fechaNuevoTurno, navigate]);
 
   const cerrarPanel = () => {
     setTurnoSeleccionado(null);
-    setForm(initialForm);
+    setForm(initialTurnoForm);
     setErrors({});
     setSubmitError("");
   };
@@ -513,7 +474,7 @@ export default function Turno() {
       setMensaje("");
 
       const isEditing = Boolean(turnoSeleccionado?.id);
-      const payload = buildPayload(form);
+      const payload = buildTurnoPayload(form);
 
       if (isEditing) {
         await apiPut(`/turnos/${turnoSeleccionado.id}`, payload);
@@ -617,7 +578,7 @@ export default function Turno() {
               <option value="todos">Todos los estados</option>
               {estadosTurno.map((estado) => (
                 <option key={estado} value={estado}>
-                  {estado}
+                  {formatEstado(estado)}
                 </option>
               ))}
             </select>
@@ -656,48 +617,10 @@ export default function Turno() {
             />
           </div>
 
-          <div className="turno-list">
-            <div className="section-heading">
-              <h2>Listado de turnos</h2>
-              <p>{turnosFiltrados.length} resultado(s) para los filtros actuales.</p>
-            </div>
-            {turnosFiltrados.length > 0 ? (
-              turnosFiltrados.map((turno) => (
-                <div
-                  key={turno.id}
-                  className="turno-list-item"
-                >
-                  <div>
-                    <span className={`turno-status turno-status-${turno.estado || "confirmado"}`}>
-                      {turno.estado || "confirmado"}
-                    </span>
-                    <button
-                      type="button"
-                      className="turno-patient-link"
-                      onClick={() => abrirDetalleTurno(turno)}
-                    >
-                      {getTurnoPaciente(turno)}
-                    </button>
-                    <p>{getTurnoProfesional(turno)}</p>
-                  </div>
-                  <div className="turno-list-time">
-                    <strong>{normalizeTime(turno.hora_inicio)}</strong>
-                    <span>
-                      {new Date(`${normalizeDate(turno.fecha)}T00:00:00`).toLocaleDateString("es-AR")}
-                    </span>
-                    <button
-                      type="button"
-                      className="turno-list-edit"
-                      onClick={() => abrirEditarTurno(turno)}
-                    >
-                      Editar
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="no-results">No se encontraron turnos</div>
-            )}
+          <div className="turno-calendar-actions">
+            <Link to="/turno/listado" className="btn-ver-turnos">
+              Ver turnos
+            </Link>
           </div>
         </section>
 
@@ -839,7 +762,7 @@ export default function Turno() {
               >
                 {estadosTurno.map((estado) => (
                   <option key={estado} value={estado}>
-                    {estado}
+                    {formatEstado(estado)}
                   </option>
                 ))}
               </select>
@@ -912,8 +835,8 @@ export default function Turno() {
                   .slice(0, 2)}
               </div>
               <div>
-                <span className={`turno-status turno-status-${turnoDetalle.estado || "confirmado"}`}>
-                  {turnoDetalle.estado || "confirmado"}
+                <span className={`turno-status turno-status-${normalizeEstado(turnoDetalle.estado)}`}>
+                  {formatEstado(turnoDetalle.estado)}
                 </span>
                 <h2 id="turno-modal-title">{getTurnoPaciente(turnoDetalle)}</h2>
                 <p>

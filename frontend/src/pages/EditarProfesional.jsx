@@ -65,7 +65,9 @@ export default function EditarProfesional() {
     const cargarDatosProfesionales = async () => {
       try {
         const data = await apiGet("/especialidades");
+        const consultoriosData = await apiGet("/consultorios");
         setEspecialidades(data);
+        setConsultorios(consultoriosData);
       } catch {
         setSubmitError("No se pudieron cargar las especialidades y consultorios.");
       } finally {
@@ -73,7 +75,7 @@ export default function EditarProfesional() {
       }
     };
 
-    cargarEspecialidades();
+    cargarDatosProfesionales();
   }, []);
 
   useEffect(() => {
