@@ -102,23 +102,41 @@ body {
 
 /* Hero Section */
 .hero {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 80px 60px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background:
+    linear-gradient(135deg, rgba(29, 78, 216, 0.7), rgba(37, 99, 235, 0.42)),
+    url("/centro-alma.jpg") center / cover no-repeat,
+    linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   min-height: 70vh;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(2px);
 }
 
 .hero-content {
-  max-width: 550px;
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
 }
 
 .badge {
   display: inline-block;
   padding: 6px 14px;
-  background: var(--white);
-  color: var(--primary);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--primary-dark);
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
@@ -129,7 +147,7 @@ body {
 .hero h1 {
   font-size: 48px;
   font-weight: 800;
-  color: var(--text-dark);
+  color: var(--white);
   line-height: 1.2;
   margin-bottom: 20px;
   letter-spacing: -1px;
@@ -137,13 +155,14 @@ body {
 
 .hero-subtitle {
   font-size: 18px;
-  color: var(--text-light);
+  color: rgba(255, 255, 255, 0.92);
   margin-bottom: 32px;
   line-height: 1.7;
 }
 
 .hero-buttons {
   display: flex;
+  justify-content: center;
   gap: 16px;
 }
 
@@ -180,70 +199,6 @@ body {
 .btn-secondary:hover {
   border-color: var(--primary);
   color: var(--primary);
-}
-
-/* Hero Visual - Floating Cards */
-.hero-visual {
-  position: relative;
-  width: 400px;
-  height: 350px;
-}
-
-.card-float {
-  position: absolute;
-  background: var(--white);
-  padding: 20px 24px;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  animation: float 3s ease-in-out infinite;
-}
-
-.card-float:nth-child(1) {
-  top: 20px;
-  right: 40px;
-}
-
-.card-float:nth-child(2) {
-  top: 130px;
-  right: 0px;
-  animation-delay: 0.5s;
-}
-
-.card-float:nth-child(3) {
-  top: 240px;
-  right: 60px;
-  animation-delay: 1s;
-}
-
-.card-icon {
-  font-size: 32px;
-}
-
-.card-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.card-text strong {
-  font-size: 15px;
-  color: var(--text-dark);
-}
-
-.card-text span {
-  font-size: 13px;
-  color: var(--text-light);
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
 }
 
 /* Features Section */
@@ -344,10 +299,6 @@ body {
   .hero-buttons {
     justify-content: center;
     flex-wrap: wrap;
-  }
-
-  .hero-visual {
-    display: none;
   }
 
   .features {
