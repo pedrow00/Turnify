@@ -148,6 +148,17 @@ CREATE TABLE horarios_consultorios (
     UNIQUE (consultorio_id, hora_inicio, hora_fin)
 );
 
+CREATE TABLE profesional_consultorios (
+    id SERIAL PRIMARY KEY,
+    profesional_id INTEGER REFERENCES profesionales(id) ON DELETE CASCADE,
+    consultorio_id INTEGER REFERENCES consultorios(id) ON DELETE CASCADE,
+
+    activo BOOLEAN DEFAULT true,
+
+    UNIQUE (profesional_id, consultorio_id)
+);
+
+
 '--------------TURNOS---------------'
 
 CREATE TABLE turnos (
