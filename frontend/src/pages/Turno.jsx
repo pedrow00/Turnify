@@ -287,14 +287,40 @@ export default function Turno() {
     turnosOcupadosProfesional,
   ]);
 
-  const calendarEvents = turnosFiltrados.map((turno) => ({
-    id: String(turno.id),
-    title: `${normalizeTime(turno.hora_inicio)} ${getTurnoPaciente(turno)}`,
-    start: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_inicio)}:00`,
-    end: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_fin)}:00`,
-    className: `turno-event turno-event-${normalizeEstado(turno.estado)}`,
-    extendedProps: { turno },
-  }));
+  const previewTurnoEvent = useMemo(() => {
+    if (!form.fecha || !form.hora_inicio) return null;
+
+    const paciente = pacientes.find((item) => String(item.id) === String(form.paciente_id));
+    const profesional = profesionales.find((item) => String(item.id) === String(form.profesional_id));
+    const titleParts = [
+      normalizeTime(form.hora_inicio),
+      paciente ? getNombreCompleto(paciente) : "Turno seleccionado",
+      profesional ? `con ${getNombreCompleto(profesional)}` : "",
+    ].filter(Boolean);
+
+    return {
+      id: "turno-preview",
+      title: titleParts.join(" "),
+      start: `${form.fecha}T${normalizeTime(form.hora_inicio)}:00`,
+      end: `${form.fecha}T${normalizeTime(form.hora_fin)}:00`,
+      className: "turno-event turno-event-preview",
+      display: "block",
+      extendedProps: { isPreview: true },
+    };
+  }, [form.fecha, form.hora_fin, form.hora_inicio, form.paciente_id, form.profesional_id, pacientes, profesionales]);
+
+  const calendarEvents = useMemo(() => {
+    const eventosTurnos = turnosFiltrados.map((turno) => ({
+      id: String(turno.id),
+      title: `${normalizeTime(turno.hora_inicio)} ${getTurnoPaciente(turno)}`,
+      start: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_inicio)}:00`,
+      end: `${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_fin)}:00`,
+      className: `turno-event turno-event-${normalizeEstado(turno.estado)}`,
+      extendedProps: { turno },
+    }));
+
+    return previewTurnoEvent ? [...eventosTurnos, previewTurnoEvent] : eventosTurnos;
+  }, [previewTurnoEvent, turnosFiltrados]);
 
   const clearFieldError = (fieldName) => {
     if (!errors[fieldName]) return;
@@ -603,17 +629,26 @@ export default function Turno() {
               }}
               selectable
               nowIndicator
+              dayMaxEvents={3}
+              eventMaxStack={3}
+              moreLinkClick="popover"
               events={calendarEvents}
               dayCellClassNames={(info) => {
                 const fecha = dateToInputValue(info.date);
-                return isWeekend(fecha) ? ["turno-weekend-disabled"] : [];
+                const classes = [];
+                if (isWeekend(fecha)) classes.push("turno-weekend-disabled");
+                if (form.fecha === fecha) classes.push("turno-date-selected");
+                return classes;
               }}
               dateClick={(info) => {
                 const fecha = dateToInputValue(info.date);
                 if (isWeekend(fecha) || isPastDate(fecha)) return;
                 abrirNuevoTurno(fecha);
               }}
-              eventClick={(info) => abrirEditarTurno(info.event.extendedProps.turno)}
+              eventClick={(info) => {
+                if (info.event.extendedProps.isPreview) return;
+                setTurnoDetalle(info.event.extendedProps.turno);
+              }}
             />
           </div>
 
