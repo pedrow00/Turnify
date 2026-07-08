@@ -16,7 +16,9 @@ import {
 export default function ListadoTurnos() {
   const navigate = useNavigate();
   const [turnos, setTurnos] = useState([]);
+  const [profesionales, setProfesionales] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroProfesional, setFiltroProfesional] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [turnoDetalle, setTurnoDetalle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,8 +28,16 @@ export default function ListadoTurnos() {
     try {
       setLoading(true);
       setLoadError("");
-      const turnosData = await apiGet("/turnos");
+      const [turnosData, profesionalesData] = await Promise.all([
+        apiGet("/turnos"),
+        apiGet("/profesionales"),
+      ]);
       setTurnos(turnosData.filter((turno) => normalizeDate(turno.fecha) >= todayInputValue()));
+      setProfesionales(
+        [...profesionalesData].sort((a, b) =>
+          getTurnoProfesional({ profesional: a }).localeCompare(getTurnoProfesional({ profesional: b }))
+        )
+      );
     } catch (error) {
       setLoadError(error.message || "No se pudieron cargar los turnos.");
     } finally {
@@ -57,6 +67,9 @@ export default function ListadoTurnos() {
     return turnos.filter((turno) => {
       const coincideEstado = filtroEstado === "todos" || normalizeEstado(turno.estado) === filtroEstado;
       if (!coincideEstado) return false;
+      const coincideProfesional =
+        filtroProfesional === "todos" || String(turno.profesional_id) === String(filtroProfesional);
+      if (!coincideProfesional) return false;
       if (!termino) return true;
 
       const textoTurno = [
@@ -74,7 +87,7 @@ export default function ListadoTurnos() {
 
       return textoTurno.includes(termino);
     });
-  }, [busqueda, filtroEstado, turnos]);
+  }, [busqueda, filtroEstado, filtroProfesional, turnos]);
 
   const editarTurno = (turno) => {
     navigate("/turno", { state: { editarTurnoId: turno.id } });
@@ -104,23 +117,43 @@ export default function ListadoTurnos() {
       ) : null}
 
       <section className="turno-list-page-panel">
-        <div className="turno-toolbar">
-          <div className="search-box">
+        <div className="turno-toolbar turno-list-filters">
+          <label className="turno-filter turno-search-filter">
+            <span>Buscar turno</span>
             <input
               type="text"
               placeholder="Buscar por paciente, profesional, fecha o motivo..."
               value={busqueda}
               onChange={(event) => setBusqueda(event.target.value)}
             />
-          </div>
-          <select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}>
-            <option value="todos">Todos los estados</option>
-            {estadosTurno.map((estado) => (
-              <option key={estado} value={estado}>
-                {formatEstado(estado)}
-              </option>
-            ))}
-          </select>
+          </label>
+
+          <label className="turno-filter">
+            <span>Profesional</span>
+            <select
+              value={filtroProfesional}
+              onChange={(event) => setFiltroProfesional(event.target.value)}
+            >
+              <option value="todos">Todos los profesionales</option>
+              {profesionales.map((profesional) => (
+                <option key={profesional.id} value={profesional.id}>
+                  {getTurnoProfesional({ profesional })}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="turno-filter">
+            <span>Estado</span>
+            <select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}>
+              <option value="todos">Todos los estados</option>
+              {estadosTurno.map((estado) => (
+                <option key={estado} value={estado}>
+                  {formatEstado(estado)}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="turno-list">
