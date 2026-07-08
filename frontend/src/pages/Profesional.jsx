@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Profesional.css";
 import { formatHorario } from "../utils/horariosProfesionales";
+import {
+  getEstadoActividadProfesional,
+  normalizeFechaIndisponibilidad,
+} from "../utils/indisponibilidadProfesional";
 import { apiGet } from "../utils/api";
 
 export default function Profesional() {
@@ -144,6 +148,17 @@ export default function Profesional() {
       .join(", ");
   };
 
+  const getIndisponibilidadTexto = (prof) => {
+    const desde = normalizeFechaIndisponibilidad(prof.indisponibilidad_desde);
+    const hasta = normalizeFechaIndisponibilidad(prof.indisponibilidad_hasta);
+
+    if (!desde || !hasta) {
+      return "Sin periodo cargado";
+    }
+
+    return `${desde} al ${hasta}`;
+  };
+
   if (loading) return <p>Cargando profesionales...</p>;
   if (error) return <p>{error}</p>;
 
@@ -213,8 +228,19 @@ export default function Profesional() {
 
           <div className="profesional-grid">
             {profesionalesFiltrados.length > 0 ? (
-              profesionalesFiltrados.map((prof) => (
+              profesionalesFiltrados.map((prof) => {
+                const estadoActividad = getEstadoActividadProfesional(prof);
+
+                return (
                 <div key={prof.id} className="profesional-card">
+                  <div className={`profesional-estado ${estadoActividad.activo ? "activo" : "inactivo"}`}>
+                    <span className="profesional-estado-label">Estado</span>
+                    <strong>{estadoActividad.etiqueta}</strong>
+                    {!estadoActividad.activo && estadoActividad.motivo ? (
+                      <span className="profesional-estado-motivo">{estadoActividad.motivo}</span>
+                    ) : null}
+                  </div>
+
                   <div className="profesional-header-card">
                     <div className="profesional-avatar">
                       {prof.foto_url ? (
@@ -276,7 +302,8 @@ export default function Profesional() {
                     </Link>
                   </div>
                 </div>
-              ))
+                );
+              })
             ) : (
               <div className="no-results">
                 <p>No se encontraron profesionales</p>
@@ -348,6 +375,20 @@ export default function Profesional() {
               <div className="profesional-modal-item">
                 <span className="label">Especialidades</span>
                 <span className="value">{getEspecialidadesTexto(profesionalSeleccionado)}</span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Estado actual</span>
+                <span className="value">
+                  {getEstadoActividadProfesional(profesionalSeleccionado).etiqueta}
+                  {!getEstadoActividadProfesional(profesionalSeleccionado).activo &&
+                  profesionalSeleccionado.indisponibilidad_motivo
+                    ? ` - ${profesionalSeleccionado.indisponibilidad_motivo}`
+                    : ""}
+                </span>
+              </div>
+              <div className="profesional-modal-item">
+                <span className="label">Periodo de indisponibilidad</span>
+                <span className="value">{getIndisponibilidadTexto(profesionalSeleccionado)}</span>
               </div>
               <div className="profesional-modal-item">
                 <span className="label">Sexo</span>

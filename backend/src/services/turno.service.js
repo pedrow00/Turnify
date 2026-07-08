@@ -78,6 +78,21 @@ const validarDatosTurno = async (data, turnoId = null) => {
     throw new Error('El profesional no atiende la especialidad seleccionada.');
   }
 
+  const indisponibilidadProfesional = await pool.query(
+    `SELECT 1
+     FROM profesionales
+     WHERE id=$1
+       AND indisponibilidad_desde IS NOT NULL
+       AND indisponibilidad_hasta IS NOT NULL
+       AND $2::date BETWEEN indisponibilidad_desde AND indisponibilidad_hasta
+     LIMIT 1`,
+    [profesional_id, fecha]
+  );
+
+  if (indisponibilidadProfesional.rows.length > 0) {
+    throw new Error('El profesional no esta disponible en la fecha seleccionada.');
+  }
+
   const horarioProfesional = await pool.query(
     `SELECT 1
      FROM horarios_profesionales

@@ -66,13 +66,23 @@ CREATE TABLE profesionales (
 
     activo BOOLEAN DEFAULT true,
 
+    indisponibilidad_desde DATE,
+    indisponibilidad_hasta DATE,
+    indisponibilidad_motivo TEXT,
+
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion TIMESTAMP,
     fecha_baja TIMESTAMP,
 
     CONSTRAINT fk_profesional_especialidad
     FOREIGN KEY (especialidad_id)
-    REFERENCES especialidades(id)
+    REFERENCES especialidades(id),
+
+    CONSTRAINT chk_profesional_indisponibilidad_rango
+    CHECK (
+        (indisponibilidad_desde IS NULL AND indisponibilidad_hasta IS NULL)
+        OR (indisponibilidad_desde IS NOT NULL AND indisponibilidad_hasta IS NOT NULL AND indisponibilidad_desde <= indisponibilidad_hasta)
+    )
 );
 
 

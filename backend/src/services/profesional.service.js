@@ -87,6 +87,38 @@ const toMinutes = (time) => {
   return hours * 60 + minutes;
 };
 
+const validarIndisponibilidadProfesional = (data) => {
+  const desde = data.indisponibilidad_desde || null;
+  const hasta = data.indisponibilidad_hasta || null;
+  const motivo = String(data.indisponibilidad_motivo || '').trim() || null;
+
+  if (!desde && !hasta && !motivo) {
+    return {
+      indisponibilidad_desde: null,
+      indisponibilidad_hasta: null,
+      indisponibilidad_motivo: null,
+    };
+  }
+
+  if (!desde || !hasta) {
+    throw new Error('Debes indicar fecha de inicio y fin del periodo de indisponibilidad.');
+  }
+
+  if (desde > hasta) {
+    throw new Error('La fecha de inicio de indisponibilidad debe ser anterior o igual a la fecha de fin.');
+  }
+
+  if (!motivo) {
+    throw new Error('Indica el motivo de la indisponibilidad.');
+  }
+
+  return {
+    indisponibilidad_desde: desde,
+    indisponibilidad_hasta: hasta,
+    indisponibilidad_motivo: motivo,
+  };
+};
+
 const validarHorariosProfesional = (horarios = []) => {
   const horariosValidos = horarios.filter(
     (horario) => horario?.dia && horario?.hora_inicio && horario?.hora_fin
@@ -275,6 +307,7 @@ const crearProfesional = async (data) => {
   const especialidades = normalizarEspecialidadesProfesional(data);
   const principal = especialidades.find((item) => item.es_principal);
   const consultorioIds = normalizarConsultorioIds(data.consultorio_ids);
+  const indisponibilidad = validarIndisponibilidadProfesional(data);
   const client = await pool.connect();
 
   try {
@@ -285,14 +318,18 @@ const crearProfesional = async (data) => {
       `INSERT INTO profesionales (
         nombre, apellido, sexo, cuil, matricula, email, telefono,
         calle, numero, codigo_postal, piso, departamento,
-        provincia_nombre, localidad_nombre, foto_url, especialidad_id
+        provincia_nombre, localidad_nombre, foto_url, especialidad_id,
+        indisponibilidad_desde, indisponibilidad_hasta, indisponibilidad_motivo
       )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
       [
         nombre, apellido, sexo, cuil, principal.matricula, email, telefono,
         calle, numero, codigo_postal, piso, departamento,
-        provincia_nombre, localidad_nombre, foto_url, principal.especialidad_id
+        provincia_nombre, localidad_nombre, foto_url, principal.especialidad_id,
+        indisponibilidad.indisponibilidad_desde,
+        indisponibilidad.indisponibilidad_hasta,
+        indisponibilidad.indisponibilidad_motivo,
       ]
     );
 
@@ -320,6 +357,7 @@ const actualizarProfesional = async (id, data) => {
   const especialidades = normalizarEspecialidadesProfesional(data);
   const principal = especialidades.find((item) => item.es_principal);
   const consultorioIds = normalizarConsultorioIds(data.consultorio_ids);
+  const indisponibilidad = validarIndisponibilidadProfesional(data);
   const client = await pool.connect();
 
   try {
@@ -331,12 +369,16 @@ const actualizarProfesional = async (id, data) => {
         nombre=$1, apellido=$2, sexo=$3, cuil=$4, matricula=$5, email=$6, telefono=$7,
         calle=$8, numero=$9, codigo_postal=$10, piso=$11, departamento=$12,
         provincia_nombre=$13, localidad_nombre=$14, foto_url=$15, especialidad_id=$16,
+        indisponibilidad_desde=$17, indisponibilidad_hasta=$18, indisponibilidad_motivo=$19,
         fecha_modificacion=CURRENT_TIMESTAMP 
-       WHERE id=$17 RETURNING *`,
+       WHERE id=$20 RETURNING *`,
       [
         nombre, apellido, sexo, cuil, principal.matricula, email, telefono,
         calle, numero, codigo_postal, piso, departamento,
         provincia_nombre, localidad_nombre, foto_url, principal.especialidad_id,
+        indisponibilidad.indisponibilidad_desde,
+        indisponibilidad.indisponibilidad_hasta,
+        indisponibilidad.indisponibilidad_motivo,
         id
       ]
     );

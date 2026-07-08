@@ -29,6 +29,9 @@ import {
   todayInputValue,
   toMinutes,
 } from "../utils/turnos";
+import {
+  estaProfesionalIndisponible,
+} from "../utils/indisponibilidadProfesional";
 
 const openDatePicker = (event) => {
   try {
@@ -148,6 +151,10 @@ export default function Turno() {
     () =>
       profesionales.filter(
         (profesional) => {
+          if (form.fecha && estaProfesionalIndisponible(profesional, form.fecha)) {
+            return false;
+          }
+
           if (Array.isArray(profesional.especialidades) && profesional.especialidades.length > 0) {
             return profesional.especialidades.some(
               (especialidad) => String(especialidad.id) === String(form.especialidad_id)
@@ -157,7 +164,7 @@ export default function Turno() {
           return String(profesional.especialidad_id) === String(form.especialidad_id);
         }
       ),
-    [form.especialidad_id, profesionales]
+    [form.especialidad_id, form.fecha, profesionales]
   );
 
   const profesionalSeleccionado = useMemo(
@@ -237,6 +244,9 @@ export default function Turno() {
     const slots = [];
 
     if (!form.fecha || isWeekend(form.fecha) || isPastDate(form.fecha)) return slots;
+    if (profesionalSeleccionado && estaProfesionalIndisponible(profesionalSeleccionado, form.fecha)) {
+      return slots;
+    }
 
     for (const horario of horariosLaboralesProfesional) {
       const inicioJornada = toMinutes(horario.hora_inicio);
@@ -282,6 +292,7 @@ export default function Turno() {
     form.fecha,
     consultoriosProfesionalCompatibles,
     horariosLaboralesProfesional,
+    profesionalSeleccionado,
     turnosOcupadosConsultorio,
     turnosOcupadosPaciente,
     turnosOcupadosProfesional,
@@ -439,6 +450,11 @@ export default function Turno() {
       if (form.hora_fin !== finCalculado) {
         nuevosErrores.hora_fin = "La duracion del turno debe ser de 15 minutos.";
       }
+    }
+
+    if (form.fecha && form.profesional_id && profesionalSeleccionado &&
+      estaProfesionalIndisponible(profesionalSeleccionado, form.fecha)) {
+      nuevosErrores.profesional_id = "El profesional no esta disponible en la fecha seleccionada.";
     }
 
     if (form.fecha && form.profesional_id && horariosLaboralesProfesional.length === 0) {
@@ -713,17 +729,6 @@ export default function Turno() {
               {errors.profesional_id ? (
                 <span className="field-error">{errors.profesional_id}</span>
               ) : null}
-            </div>
-
-            <div className="turno-auto-consultorio">
-              <span>Consultorio automatico</span>
-              <p>
-                {profesionalHabilitado
-                  ? consultoriosProfesionalCompatibles.length > 0
-                    ? `${consultoriosProfesionalCompatibles.length} consultorio(s) compatible(s) asignado(s)`
-                    : "Este profesional no tiene consultorios compatibles asignados"
-                  : "Se define al elegir profesional y especialidad"}
-              </p>
             </div>
 
             <div className="turno-slots">

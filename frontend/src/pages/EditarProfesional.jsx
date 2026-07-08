@@ -8,6 +8,11 @@ import {
   normalizarHorariosDesdeApi,
   prepararHorariosPayload,
 } from "../utils/horariosProfesionales";
+import {
+  getIndisponibilidadError,
+  normalizeFechaIndisponibilidad,
+  prepararIndisponibilidadPayload,
+} from "../utils/indisponibilidadProfesional";
 import { apiGet, apiPut } from "../utils/api";
 
 const API_GOBIERNO_BASE_URL = "https://apis.datos.gob.ar/georef/api";
@@ -47,6 +52,11 @@ export default function EditarProfesional() {
   ]);
   const [consultorioIds, setConsultorioIds] = useState([]);
   const [horarios, setHorarios] = useState([crearHorarioVacio()]);
+  const [indisponibilidad, setIndisponibilidad] = useState({
+    desde: "",
+    hasta: "",
+    motivo: "",
+  });
   const [initialSnapshot, setInitialSnapshot] = useState(JSON.stringify(initialForm));
   const [errors, setErrors] = useState({});
   const [provincias, setProvincias] = useState([]);
@@ -157,6 +167,12 @@ export default function EditarProfesional() {
       );
       setConsultorioIds(nextConsultorioIds);
       setHorarios(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]);
+      const nextIndisponibilidad = {
+        desde: normalizeFechaIndisponibilidad(profesional.indisponibilidad_desde),
+        hasta: normalizeFechaIndisponibilidad(profesional.indisponibilidad_hasta),
+        motivo: profesional.indisponibilidad_motivo ?? "",
+      };
+      setIndisponibilidad(nextIndisponibilidad);
       setInitialSnapshot(
         JSON.stringify({
           form: nextForm,
@@ -167,6 +183,7 @@ export default function EditarProfesional() {
           })),
           consultorio_ids: nextConsultorioIds,
           horarios: prepararHorariosPayload(nextHorarios.length > 0 ? nextHorarios : [crearHorarioVacio()]),
+          indisponibilidad: prepararIndisponibilidadPayload(nextIndisponibilidad),
         })
       );
     } catch (error) {
@@ -341,6 +358,22 @@ export default function EditarProfesional() {
     setSubmitError("");
   };
 
+  const handleIndisponibilidadChange = (event) => {
+    const { name, value } = event.target;
+    setIndisponibilidad((current) => ({
+      ...current,
+      [name]: value,
+    }));
+    clearFieldError("indisponibilidad");
+    setSubmitError("");
+  };
+
+  const limpiarIndisponibilidad = () => {
+    setIndisponibilidad({ desde: "", hasta: "", motivo: "" });
+    clearFieldError("indisponibilidad");
+    setSubmitError("");
+  };
+
   const especialidadIdsSeleccionadas = especialidadesProfesional
     .map((item) => Number(item.especialidad_id))
     .filter((id) => Number.isInteger(id) && id > 0);
@@ -505,6 +538,11 @@ export default function EditarProfesional() {
       nuevosErrores.horarios = horariosError;
     }
 
+    const indisponibilidadError = getIndisponibilidadError(indisponibilidad);
+    if (indisponibilidadError) {
+      nuevosErrores.indisponibilidad = indisponibilidadError;
+    }
+
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -538,6 +576,7 @@ export default function EditarProfesional() {
         localidad_nombre: form.localidad_nombre || null,
         foto_url: form.foto_url.trim() || null,
         horarios: prepararHorariosPayload(horarios),
+        ...prepararIndisponibilidadPayload(indisponibilidad),
       };
 
       await apiPut(`/profesionales/${id}`, payload);
@@ -558,6 +597,7 @@ export default function EditarProfesional() {
           especialidades: prepararEspecialidadesPayload(),
           consultorio_ids: consultorioIds,
           horarios: prepararHorariosPayload(horarios),
+          indisponibilidad: prepararIndisponibilidadPayload(indisponibilidad),
         })
       );
       navigate("/profesional");
@@ -591,6 +631,7 @@ export default function EditarProfesional() {
     especialidades: prepararEspecialidadesPayload(),
     consultorio_ids: consultorioIds,
     horarios: prepararHorariosPayload(horarios),
+    indisponibilidad: prepararIndisponibilidadPayload(indisponibilidad),
   });
   const isDirty = formSnapshot !== initialSnapshot;
   const canSubmit =
@@ -1141,6 +1182,66 @@ export default function EditarProfesional() {
                   + Agregar horario
                 </button>
               </div>
+            </section>
+
+            <section className="registro-section">
+              <div className="section-heading">
+                <h2>Periodo de indisponibilidad</h2>
+                <p>Registra licencias o ausencias temporales del profesional.</p>
+              </div>
+
+              <div className="registro-grid">
+                <div className="field">
+                  <label htmlFor="indisponibilidad-desde">Desde</label>
+                  <input
+                    id="indisponibilidad-desde"
+                    name="desde"
+                    type="date"
+                    value={indisponibilidad.desde}
+                    onChange={handleIndisponibilidadChange}
+                    disabled={guardando}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="indisponibilidad-hasta">Hasta</label>
+                  <input
+                    id="indisponibilidad-hasta"
+                    name="hasta"
+                    type="date"
+                    value={indisponibilidad.hasta}
+                    onChange={handleIndisponibilidadChange}
+                    min={indisponibilidad.desde || undefined}
+                    disabled={guardando}
+                  />
+                </div>
+
+                <div className="field field-full">
+                  <label htmlFor="indisponibilidad-motivo">Motivo</label>
+                  <textarea
+                    id="indisponibilidad-motivo"
+                    name="motivo"
+                    rows={3}
+                    value={indisponibilidad.motivo}
+                    onChange={handleIndisponibilidadChange}
+                    placeholder="Licencia medica, vacaciones, capacitacion..."
+                    disabled={guardando}
+                  />
+                </div>
+              </div>
+
+              {errors.indisponibilidad ? (
+                <span className="field-error">{errors.indisponibilidad}</span>
+              ) : null}
+
+              <button
+                type="button"
+                className="btn-secondary horario-add"
+                onClick={limpiarIndisponibilidad}
+                disabled={guardando}
+              >
+                Quitar periodo de indisponibilidad
+              </button>
             </section>
 
             {submitError ? <div className="submit-error">{submitError}</div> : null}
