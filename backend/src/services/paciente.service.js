@@ -19,7 +19,7 @@ const crearPaciente = async (data) => {
   const { 
     nombre, apellido, dni, email, telefono, fecha_nacimiento, 
     provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-    calle, numero, codigo_postal, piso, dpto, observaciones
+    calle, numero, codigo_postal, piso, dpto, tipo_contacto, observaciones
   } = data;
 
   try {
@@ -27,14 +27,14 @@ const crearPaciente = async (data) => {
       `INSERT INTO pacientes (
         nombre, apellido, dni, email, telefono, fecha_nacimiento,
         provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-        calle, numero, codigo_postal, piso, dpto, observaciones
+        calle, numero, codigo_postal, piso, dpto, tipo_contacto, observaciones
       )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING *`,
       [
         nombre, apellido, dni, email, telefono, fecha_nacimiento,
         provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-        calle, numero, codigo_postal, piso, dpto, observaciones
+        calle, numero, codigo_postal, piso, dpto, tipo_contacto || 'personal', observaciones
       ]
     );
 
@@ -49,7 +49,7 @@ const actualizarPaciente = async (id, data) => {
   const { 
     nombre, apellido, dni, email, telefono, fecha_nacimiento,
     provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-    calle, numero, codigo_postal, piso, dpto, observaciones
+    calle, numero, codigo_postal, piso, dpto, tipo_contacto, observaciones
   } = data;
 
   try {
@@ -57,13 +57,13 @@ const actualizarPaciente = async (id, data) => {
       `UPDATE pacientes SET 
         nombre=$1, apellido=$2, dni=$3, email=$4, telefono=$5, fecha_nacimiento=$6,
         provincia_id=$7, provincia_nombre=$8, localidad_id=$9, localidad_nombre=$10,
-        calle=$11, numero=$12, codigo_postal=$13, piso=$14, dpto=$15, observaciones=$16,
+        calle=$11, numero=$12, codigo_postal=$13, piso=$14, dpto=$15, tipo_contacto=$16, observaciones=$17,
         fecha_modificacion=CURRENT_TIMESTAMP
-       WHERE id=$17 RETURNING *`,
+       WHERE id=$18 RETURNING *`,
       [
         nombre, apellido, dni, email, telefono, fecha_nacimiento,
         provincia_id, provincia_nombre, localidad_id, localidad_nombre,
-        calle, numero, codigo_postal, piso, dpto, observaciones,
+        calle, numero, codigo_postal, piso, dpto, tipo_contacto || 'personal', observaciones,
         id
       ]
     );

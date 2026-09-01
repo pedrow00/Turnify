@@ -90,7 +90,7 @@ export default function ListadoTurnos() {
   }, [busqueda, filtroEstado, filtroProfesional, turnos]);
 
   const editarTurno = (turno) => {
-    navigate("/turno", { state: { editarTurnoId: turno.id } });
+    navigate("/turno/nuevo", { state: { editarTurnoId: turno.id } });
   };
 
   if (loading) return <p className="turno-loading">Cargando turnos...</p>;

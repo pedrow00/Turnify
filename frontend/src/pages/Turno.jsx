@@ -41,7 +41,8 @@ const openDatePicker = (event) => {
   }
 };
 
-export default function Turno() {
+export default function Turno({ mode = "calendar" }) {
+  const isFormPage = mode === "form";
   const location = useLocation();
   const navigate = useNavigate();
   const [turnos, setTurnos] = useState([]);
@@ -54,6 +55,7 @@ export default function Turno() {
   const [turnoDetalle, setTurnoDetalle] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroProfesional, setFiltroProfesional] = useState("todos");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -114,6 +116,9 @@ export default function Turno() {
     return turnos.filter((turno) => {
       const coincideEstado = filtroEstado === "todos" || normalizeEstado(turno.estado) === filtroEstado;
       if (!coincideEstado) return false;
+      const coincideProfesional =
+        filtroProfesional === "todos" || String(turno.profesional_id) === String(filtroProfesional);
+      if (!coincideProfesional) return false;
 
       if (!termino) return true;
 
@@ -132,7 +137,7 @@ export default function Turno() {
 
       return textoTurno.includes(termino);
     });
-  }, [busqueda, filtroEstado, turnos]);
+  }, [busqueda, filtroEstado, filtroProfesional, turnos]);
 
   const turnosDelDia = useMemo(
     () => turnos.filter((turno) => normalizeDate(turno.fecha) === form.fecha),
@@ -393,6 +398,20 @@ export default function Turno() {
     setSubmitError("");
   };
 
+  const handleHorarioChange = (event) => {
+    const slot = horariosDisponibles.find((item) => item.inicio === event.target.value);
+    if (!slot) {
+      setForm((currentForm) => ({
+        ...currentForm,
+        hora_inicio: "",
+        hora_fin: "",
+      }));
+      return;
+    }
+
+    seleccionarHorario(slot);
+  };
+
   const abrirNuevoTurno = (fecha = "") => {
     setTurnoSeleccionado(null);
     setForm({
@@ -527,6 +546,7 @@ export default function Turno() {
       await cargarDatos();
       setMensaje(isEditing ? "Turno actualizado correctamente." : "Turno registrado correctamente.");
       abrirNuevoTurno();
+      navigate("/turno", { replace: true });
     } catch (error) {
       setSubmitError(error.message || "No se pudo guardar el turno.");
     } finally {
@@ -554,24 +574,218 @@ export default function Turno() {
     }
   };
 
-  const proximoTurno = turnos
-    .filter((turno) => turno.estado !== "cancelado")
-    .find(
-      (turno) =>
-        new Date(`${normalizeDate(turno.fecha)}T${normalizeTime(turno.hora_inicio)}:00`) >=
-        new Date()
-    );
-
   if (loading) return <p className="turno-loading">Cargando turnos...</p>;
 
+  const formularioTurno = (
+    <aside className={isFormPage ? "turno-form-panel turno-form-panel-page" : "turno-form-panel"}>
+      <div className="section-heading">
+        <span className="turno-form-badge">
+          {turnoSeleccionado ? "Editar turno" : "Nuevo turno"}
+        </span>
+        <h2>{turnoSeleccionado ? "Actualizar agenda" : "Registrar turno"}</h2>
+        <p>Completa los datos obligatorios y elegi un horario disponible.</p>
+      </div>
+
+      <form className="turno-form" onSubmit={guardarTurno}>
+        <div className="field">
+          <label htmlFor="fecha">Fecha</label>
+          <input
+            id="fecha"
+            name="fecha"
+            type="date"
+            min={todayInputValue()}
+            value={form.fecha}
+            onChange={handleChange}
+            onClick={openDatePicker}
+            onFocus={openDatePicker}
+            className={errors.fecha ? "input-error" : ""}
+            disabled={guardando}
+          />
+          {errors.fecha ? <span className="field-error">{errors.fecha}</span> : null}
+        </div>
+
+        <div className="field">
+          <label htmlFor="paciente_id">Paciente</label>
+          <select
+            id="paciente_id"
+            name="paciente_id"
+            value={form.paciente_id}
+            onChange={handleChange}
+            className={errors.paciente_id ? "input-error" : ""}
+            disabled={guardando || !fechaHabilitada}
+          >
+            <option value="">Selecciona un paciente</option>
+            {pacientes.map((paciente) => (
+              <option key={paciente.id} value={paciente.id}>
+                {getNombreCompleto(paciente)} - DNI {paciente.dni}
+              </option>
+            ))}
+          </select>
+          {errors.paciente_id ? <span className="field-error">{errors.paciente_id}</span> : null}
+        </div>
+
+        <div className="field">
+          <label htmlFor="especialidad_id">Especialidad</label>
+          <select
+            id="especialidad_id"
+            name="especialidad_id"
+            value={form.especialidad_id}
+            onChange={handleChange}
+            className={errors.especialidad_id ? "input-error" : ""}
+            disabled={guardando || !pacienteHabilitado}
+          >
+            <option value="">Selecciona una especialidad</option>
+            {especialidades.map((especialidad) => (
+              <option key={especialidad.id} value={especialidad.id}>
+                {especialidad.nombre}
+              </option>
+            ))}
+          </select>
+          {errors.especialidad_id ? <span className="field-error">{errors.especialidad_id}</span> : null}
+        </div>
+
+        <div className="field">
+          <label htmlFor="profesional_id">Profesional</label>
+          <select
+            id="profesional_id"
+            name="profesional_id"
+            value={form.profesional_id}
+            onChange={handleChange}
+            className={errors.profesional_id ? "input-error" : ""}
+            disabled={guardando || !especialidadHabilitada}
+          >
+            <option value="">Selecciona un profesional</option>
+            {profesionalesFiltrados.map((profesional) => (
+              <option key={profesional.id} value={profesional.id}>
+                {getNombreCompleto(profesional)}
+              </option>
+            ))}
+          </select>
+          {errors.profesional_id ? <span className="field-error">{errors.profesional_id}</span> : null}
+        </div>
+
+        <div className="turno-slots">
+          <label className="turno-slots-label" htmlFor="hora_inicio">
+            Rango horario disponible
+          </label>
+          <select
+            id="hora_inicio"
+            name="hora_inicio"
+            value={form.hora_inicio}
+            onChange={handleHorarioChange}
+            className={errors.hora_inicio ? "input-error" : ""}
+            disabled={guardando || !form.fecha || !form.profesional_id || !form.paciente_id || !form.especialidad_id}
+          >
+            <option value="">
+              {horariosDisponibles.length > 0
+                ? "Selecciona un rango de 15 minutos"
+                : "Sin rangos disponibles"}
+            </option>
+            {horariosDisponibles.map((slot) => (
+              <option
+                key={slot.inicio}
+                value={slot.inicio}
+                disabled={!slot.disponible}
+              >
+                {slot.inicio} - {slot.fin}{slot.disponible ? "" : ` (${slot.motivo})`}
+              </option>
+            ))}
+          </select>
+          {errors.hora_inicio ? <span className="field-error">{errors.hora_inicio}</span> : null}
+        </div>
+
+        <div className="field">
+          <label htmlFor="estado">Estado</label>
+          <select
+            id="estado"
+            name="estado"
+            value={form.estado}
+            onChange={handleChange}
+            disabled={guardando || !horarioHabilitado}
+          >
+            {estadosTurno.map((estado) => (
+              <option key={estado} value={estado}>
+                {formatEstado(estado)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="motivo_consulta">Motivo de consulta</label>
+          <textarea
+            id="motivo_consulta"
+            name="motivo_consulta"
+            value={form.motivo_consulta}
+            onChange={handleChange}
+            placeholder="Control, primera consulta, seguimiento..."
+            className={errors.motivo_consulta ? "input-error" : ""}
+            disabled={guardando || !estadoHabilitado}
+          />
+          {errors.motivo_consulta ? <span className="field-error">{errors.motivo_consulta}</span> : null}
+        </div>
+
+        {submitError ? <div className="submit-error">{submitError}</div> : null}
+
+        <div className="turno-form-actions">
+          <button type="submit" className="btn-primary" disabled={!puedeGuardar}>
+            {guardando ? "Guardando..." : turnoSeleccionado ? "Guardar cambios" : "Crear turno"}
+          </button>
+          {turnoSeleccionado ? (
+            <button type="button" className="btn-danger" onClick={eliminarTurno} disabled={guardando}>
+              Eliminar
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => navigate("/turno")}
+            disabled={guardando}
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </aside>
+  );
+
+  if (isFormPage) {
+    return (
+      <div className="turno-page turno-form-page">
+        <div className="turno-header">
+          <div className="header-title">
+            <h1>{turnoSeleccionado ? "Editar turno" : "Registrar turno"}</h1>
+            <p>Alta de turnos con paciente, profesional, especialidad y horarios disponibles.</p>
+          </div>
+          <Link to="/turno" className="btn-nuevo">
+            Volver al calendario
+          </Link>
+        </div>
+
+        {loadError ? (
+          <section className="turno-alert turno-alert-error">
+            <p>{loadError}</p>
+            <button type="button" onClick={cargarDatos}>
+              Reintentar
+            </button>
+          </section>
+        ) : null}
+
+        {mensaje ? <div className="turno-alert turno-alert-success">{mensaje}</div> : null}
+
+        {formularioTurno}
+      </div>
+    );
+  }
+
   return (
-    <div className="turno-page">
+    <div className="turno-page turno-calendar-page">
       <div className="turno-header">
         <div className="header-title">
           <h1>Turnos</h1>
-          <p>Agenda, modifica y busca turnos con pacientes, profesionales y consultorios.</p>
+          <p>Calendario de turnos registrados por fecha, horario y profesional.</p>
         </div>
-        <button type="button" className="btn-nuevo" onClick={() => abrirNuevoTurno()}>
+        <button type="button" className="btn-nuevo" onClick={() => navigate("/turno/nuevo")}>
           + Nuevo Turno
         </button>
       </div>
@@ -587,27 +801,9 @@ export default function Turno() {
 
       {mensaje ? <div className="turno-alert turno-alert-success">{mensaje}</div> : null}
 
-      <div className="turno-summary-grid">
-        <div className="turno-summary-card">
-          <span>Total</span>
-          <strong>{turnos.length}</strong>
-          <p>Turnos registrados</p>
-        </div>
-        <div className="turno-summary-card">
-          <span>Confirmados</span>
-          <strong>{turnos.filter((turno) => turno.estado === "confirmado").length}</strong>
-          <p>Listos para atender</p>
-        </div>
-        <div className="turno-summary-card">
-          <span>Proximo</span>
-          <strong>{proximoTurno ? normalizeTime(proximoTurno.hora_inicio) : "--:--"}</strong>
-          <p>{proximoTurno ? getTurnoPaciente(proximoTurno) : "Sin proximos turnos"}</p>
-        </div>
-      </div>
-
-      <div className="turno-layout">
+      <div className="turno-layout turno-calendar-only-layout">
         <section className="turno-calendar-panel">
-          <div className="turno-toolbar">
+          <div className="turno-toolbar turno-calendar-filters">
             <div className="search-box">
               <input
                 type="text"
@@ -616,6 +812,14 @@ export default function Turno() {
                 onChange={(event) => setBusqueda(event.target.value)}
               />
             </div>
+            <select value={filtroProfesional} onChange={(event) => setFiltroProfesional(event.target.value)}>
+              <option value="todos">Todos los profesionales</option>
+              {profesionales.map((profesional) => (
+                <option key={profesional.id} value={profesional.id}>
+                  {getNombreCompleto(profesional)}
+                </option>
+              ))}
+            </select>
             <select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}>
               <option value="todos">Todos los estados</option>
               {estadosTurno.map((estado) => (
@@ -631,7 +835,7 @@ export default function Turno() {
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               locale="es"
-              height="auto"
+              height={isFormPage ? "auto" : "100%"}
               headerToolbar={{
                 left: "prev,next today",
                 center: "title",
@@ -645,8 +849,8 @@ export default function Turno() {
               }}
               selectable
               nowIndicator
-              dayMaxEvents={3}
-              eventMaxStack={3}
+              dayMaxEvents={2}
+              eventMaxStack={2}
               moreLinkClick="popover"
               events={calendarEvents}
               dayCellClassNames={(info) => {
@@ -659,7 +863,7 @@ export default function Turno() {
               dateClick={(info) => {
                 const fecha = dateToInputValue(info.date);
                 if (isWeekend(fecha) || isPastDate(fecha)) return;
-                abrirNuevoTurno(fecha);
+                navigate("/turno/nuevo", { state: { fechaNuevoTurno: fecha } });
               }}
               eventClick={(info) => {
                 if (info.event.extendedProps.isPreview) return;
@@ -674,173 +878,6 @@ export default function Turno() {
             </Link>
           </div>
         </section>
-
-        <aside className="turno-form-panel">
-          <div className="section-heading">
-            <span className="turno-form-badge">
-              {turnoSeleccionado ? "Editar turno" : "Nuevo turno"}
-            </span>
-            <h2>{turnoSeleccionado ? "Actualizar agenda" : "Registrar turno"}</h2>
-            <p>Completa los datos obligatorios y elegi un horario disponible.</p>
-          </div>
-
-          <form className="turno-form" onSubmit={guardarTurno}>
-            <div className="field">
-              <label htmlFor="fecha">Fecha</label>
-              <input
-                id="fecha"
-                name="fecha"
-                type="date"
-                min={todayInputValue()}
-                value={form.fecha}
-                onChange={handleChange}
-                onClick={openDatePicker}
-                onFocus={openDatePicker}
-                className={errors.fecha ? "input-error" : ""}
-                disabled={guardando}
-              />
-              {errors.fecha ? <span className="field-error">{errors.fecha}</span> : null}
-            </div>
-
-            <div className="field">
-              <label htmlFor="paciente_id">Paciente</label>
-              <select
-                id="paciente_id"
-                name="paciente_id"
-                value={form.paciente_id}
-                onChange={handleChange}
-                className={errors.paciente_id ? "input-error" : ""}
-                disabled={guardando || !fechaHabilitada}
-              >
-                <option value="">Selecciona un paciente</option>
-                {pacientes.map((paciente) => (
-                  <option key={paciente.id} value={paciente.id}>
-                    {getNombreCompleto(paciente)} - DNI {paciente.dni}
-                  </option>
-                ))}
-              </select>
-              {errors.paciente_id ? <span className="field-error">{errors.paciente_id}</span> : null}
-            </div>
-
-            <div className="field">
-              <label htmlFor="especialidad_id">Especialidad</label>
-              <select
-                id="especialidad_id"
-                name="especialidad_id"
-                value={form.especialidad_id}
-                onChange={handleChange}
-                className={errors.especialidad_id ? "input-error" : ""}
-                disabled={guardando || !pacienteHabilitado}
-              >
-                <option value="">Selecciona una especialidad</option>
-                {especialidades.map((especialidad) => (
-                  <option key={especialidad.id} value={especialidad.id}>
-                    {especialidad.nombre}
-                  </option>
-                ))}
-              </select>
-              {errors.especialidad_id ? (
-                <span className="field-error">{errors.especialidad_id}</span>
-              ) : null}
-            </div>
-
-            <div className="field">
-              <label htmlFor="profesional_id">Profesional</label>
-              <select
-                id="profesional_id"
-                name="profesional_id"
-                value={form.profesional_id}
-                onChange={handleChange}
-                className={errors.profesional_id ? "input-error" : ""}
-                disabled={guardando || !especialidadHabilitada}
-              >
-                <option value="">Selecciona un profesional</option>
-                {profesionalesFiltrados.map((profesional) => (
-                  <option key={profesional.id} value={profesional.id}>
-                    {getNombreCompleto(profesional)}
-                  </option>
-                ))}
-              </select>
-              {errors.profesional_id ? (
-                <span className="field-error">{errors.profesional_id}</span>
-              ) : null}
-            </div>
-
-            <div className="turno-slots">
-              <span className="turno-slots-label">Horarios disponibles</span>
-              <div className="turno-slots-grid">
-                {horariosDisponibles.map((slot) => (
-                  <button
-                    key={slot.inicio}
-                    type="button"
-                    className={`turno-slot ${form.hora_inicio === slot.inicio ? "selected" : ""}`}
-                    onClick={() => seleccionarHorario(slot)}
-                    disabled={
-                      !slot.disponible ||
-                      !form.fecha ||
-                      !form.profesional_id ||
-                      !form.paciente_id ||
-                      !form.especialidad_id
-                    }
-                    title={slot.motivo}
-                  >
-                    {slot.inicio}
-                  </button>
-                ))}
-              </div>
-              {errors.hora_inicio ? <span className="field-error">{errors.hora_inicio}</span> : null}
-            </div>
-
-            <div className="field">
-              <label htmlFor="estado">Estado</label>
-              <select
-                id="estado"
-                name="estado"
-                value={form.estado}
-                onChange={handleChange}
-                disabled={guardando || !horarioHabilitado}
-              >
-                {estadosTurno.map((estado) => (
-                  <option key={estado} value={estado}>
-                    {formatEstado(estado)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="motivo_consulta">Motivo de consulta</label>
-              <textarea
-                id="motivo_consulta"
-                name="motivo_consulta"
-                value={form.motivo_consulta}
-                onChange={handleChange}
-                placeholder="Control, primera consulta, seguimiento..."
-                className={errors.motivo_consulta ? "input-error" : ""}
-                disabled={guardando || !estadoHabilitado}
-              />
-              {errors.motivo_consulta ? (
-                <span className="field-error">{errors.motivo_consulta}</span>
-              ) : null}
-            </div>
-
-            {submitError ? <div className="submit-error">{submitError}</div> : null}
-
-            <div className="turno-form-actions">
-              <button type="submit" className="btn-primary" disabled={!puedeGuardar}>
-                {guardando ? "Guardando..." : turnoSeleccionado ? "Guardar cambios" : "Crear turno"}
-              </button>
-              {turnoSeleccionado ? (
-                <button type="button" className="btn-danger" onClick={eliminarTurno} disabled={guardando}>
-                  Eliminar
-                </button>
-              ) : null}
-              <button type="button" className="btn-secondary" onClick={cerrarPanel} disabled={guardando}>
-                Limpiar
-              </button>
-            </div>
-          </form>
-        </aside>
       </div>
 
       {turnoDetalle ? (
@@ -934,7 +971,7 @@ export default function Turno() {
                 className="btn-primary"
                 onClick={() => {
                   setTurnoDetalle(null);
-                  abrirEditarTurno(turnoDetalle);
+                  navigate("/turno/nuevo", { state: { editarTurnoId: turnoDetalle.id } });
                 }}
               >
                 Editar turno

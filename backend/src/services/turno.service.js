@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
 const DURACION_TURNO_MINUTOS = 15;
+let profesionalesTieneIndisponibilidad = null;
 
 const normalizeTime = (time) => String(time || '').slice(0, 5);
 
@@ -18,6 +19,23 @@ const fromMinutes = (minutes) => {
 const getDiaSemana = (fecha) => {
   const dias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
   return dias[new Date(`${fecha}T12:00:00`).getDay()];
+};
+
+const tieneColumnasIndisponibilidad = async () => {
+  if (profesionalesTieneIndisponibilidad !== null) {
+    return profesionalesTieneIndisponibilidad;
+  }
+
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS columnas
+     FROM information_schema.columns
+     WHERE table_schema = current_schema()
+       AND table_name = 'profesionales'
+       AND column_name IN ('indisponibilidad_desde', 'indisponibilidad_hasta')`
+  );
+
+  profesionalesTieneIndisponibilidad = result.rows[0].columnas === 2;
+  return profesionalesTieneIndisponibilidad;
 };
 
 const validarDatosTurno = async (data, turnoId = null) => {
@@ -78,19 +96,21 @@ const validarDatosTurno = async (data, turnoId = null) => {
     throw new Error('El profesional no atiende la especialidad seleccionada.');
   }
 
-  const indisponibilidadProfesional = await pool.query(
-    `SELECT 1
-     FROM profesionales
-     WHERE id=$1
-       AND indisponibilidad_desde IS NOT NULL
-       AND indisponibilidad_hasta IS NOT NULL
-       AND $2::date BETWEEN indisponibilidad_desde AND indisponibilidad_hasta
-     LIMIT 1`,
-    [profesional_id, fecha]
-  );
+  if (await tieneColumnasIndisponibilidad()) {
+    const indisponibilidadProfesional = await pool.query(
+      `SELECT 1
+       FROM profesionales
+       WHERE id=$1
+         AND indisponibilidad_desde IS NOT NULL
+         AND indisponibilidad_hasta IS NOT NULL
+         AND $2::date BETWEEN indisponibilidad_desde AND indisponibilidad_hasta
+       LIMIT 1`,
+      [profesional_id, fecha]
+    );
 
-  if (indisponibilidadProfesional.rows.length > 0) {
-    throw new Error('El profesional no esta disponible en la fecha seleccionada.');
+    if (indisponibilidadProfesional.rows.length > 0) {
+      throw new Error('El profesional no esta disponible en la fecha seleccionada.');
+    }
   }
 
   const horarioProfesional = await pool.query(

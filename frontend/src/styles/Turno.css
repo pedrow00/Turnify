@@ -4,6 +4,21 @@
   margin: 0 auto;
   padding: 32px;
   text-align: left;
+  box-sizing: border-box;
+}
+
+.turno-calendar-page {
+  flex: 1 1 auto;
+  height: calc(100svh - 83px);
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 10px 16px 12px;
+}
+
+.turno-form-page {
+  max-width: 880px;
 }
 
 .turno-loading {
@@ -17,6 +32,38 @@
   align-items: center;
   gap: 20px;
   margin-bottom: 28px;
+}
+
+.turno-calendar-page .turno-header {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.turno-header h1 {
+  margin: 0 0 4px;
+  color: var(--text-dark, #1e293b);
+  font-size: 32px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.turno-calendar-page .turno-header h1 {
+  font-size: 24px;
+}
+
+.turno-header p {
+  color: var(--text-light, #64748b);
+  font-size: 14px;
+}
+
+.turno-calendar-page .turno-header p {
+  font-size: 12px;
+}
+
+.turno-calendar-page .turno-alert {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
 }
 
 .turno-header .btn-nuevo {
@@ -33,6 +80,12 @@
   text-decoration: none;
   border: 0;
   cursor: pointer;
+}
+
+.turno-calendar-page .turno-header .btn-nuevo {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .turno-alert {
@@ -115,6 +168,12 @@
   align-items: start;
 }
 
+.turno-calendar-only-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+}
+
 .turno-calendar-panel,
 .turno-form-panel {
   border: 1px solid var(--border, #e2e8f0);
@@ -127,10 +186,22 @@
   padding: 20px;
 }
 
+.turno-calendar-page .turno-calendar-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px;
+}
+
 .turno-form-panel {
   position: sticky;
   top: 88px;
   padding: 22px;
+}
+
+.turno-form-panel-page {
+  position: static;
 }
 
 .turno-toolbar {
@@ -139,8 +210,18 @@
   margin-bottom: 18px;
 }
 
+.turno-calendar-page .turno-toolbar {
+  margin-bottom: 8px;
+}
+
 .turno-toolbar .search-box {
   flex: 1;
+}
+
+.turno-calendar-filters {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 280px) minmax(180px, 220px);
 }
 
 .turno-toolbar input,
@@ -190,6 +271,24 @@
   border-radius: 12px;
 }
 
+.turno-calendar-page .turno-toolbar input,
+.turno-calendar-page .turno-toolbar select {
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.turno-calendar-page .turno-calendar {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.turno-calendar-page .turno-calendar-actions {
+  flex: 0 0 auto;
+  margin-top: 8px;
+}
+
 .turno-calendar .fc {
   --fc-border-color: #e2e8f0;
   --fc-button-bg-color: #2563eb;
@@ -208,9 +307,17 @@
   gap: 10px;
 }
 
+.turno-calendar-page .fc-toolbar {
+  padding: 8px 10px;
+}
+
 .turno-calendar .fc-toolbar-title {
   font-size: 20px;
   font-weight: 800;
+}
+
+.turno-calendar-page .fc-toolbar-title {
+  font-size: 17px;
 }
 
 .turno-calendar .fc-button {
@@ -219,6 +326,11 @@
   font-weight: 700;
   box-shadow: none;
   text-transform: capitalize;
+}
+
+.turno-calendar-page .fc-button {
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 .turno-calendar .fc-daygrid-day-number,
@@ -246,12 +358,26 @@
 }
 
 .turno-calendar .fc-daygrid-day-frame {
-  min-height: 116px;
+  min-height: 66px;
 }
 
 .turno-calendar .fc-daygrid-event {
-  margin-top: 3px;
+  margin-top: 2px;
   white-space: nowrap;
+}
+
+.turno-calendar-page .fc-daygrid-day-top {
+  line-height: 1.1;
+}
+
+.turno-calendar-page .fc-daygrid-day-number {
+  padding: 3px 5px;
+  font-size: 12px;
+}
+
+.turno-calendar-page .fc-col-header-cell-cushion {
+  padding: 4px;
+  font-size: 12px;
 }
 
 .turno-calendar .fc-daygrid-more-link {
@@ -276,6 +402,12 @@
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.turno-calendar-page .turno-event {
+  padding: 1px 4px;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .turno-event-confirmado {
@@ -327,6 +459,13 @@
 
 .btn-ver-turnos:hover {
   transform: translateY(-1px);
+}
+
+.turno-calendar-page .btn-ver-turnos {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
 }
 
 .turno-list-page-panel {
@@ -527,34 +666,6 @@
 .turno-slots {
   display: grid;
   gap: 10px;
-}
-
-.turno-slots-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  max-height: 178px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.turno-slot {
-  min-height: 36px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  background: #fff;
-  color: var(--text-dark, #1e293b);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.turno-slot:hover:not(:disabled),
-.turno-slot.selected {
-  border-color: var(--primary, #2563eb);
-  background: var(--primary, #2563eb);
-  color: #fff;
 }
 
 .input-error {
@@ -782,6 +893,16 @@
     align-items: stretch;
   }
 
+  .turno-calendar-page {
+    height: auto;
+    min-height: calc(100svh - 83px);
+    overflow: visible;
+  }
+
+  .turno-calendar-filters {
+    grid-template-columns: 1fr;
+  }
+
   .turno-list-filters {
     grid-template-columns: 1fr;
   }
@@ -816,10 +937,6 @@
 
   .turno-list-time {
     justify-items: start;
-  }
-
-  .turno-slots-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .turno-form-actions button {

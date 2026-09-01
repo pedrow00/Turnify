@@ -11,6 +11,7 @@ const initialForm = {
   dni: "",
   email: "",
   telefono: "",
+  tipo_contacto: "personal",
   fecha_nacimiento: "",
   provincia_id: "",
   provincia_nombre: "",
@@ -23,6 +24,14 @@ const initialForm = {
   dpto: "",
   observaciones: "",
 };
+
+const tiposContacto = [
+  { value: "personal", label: "Personal" },
+  { value: "familiar", label: "Familiar" },
+  { value: "tutor", label: "Tutor" },
+  { value: "responsable", label: "Responsable" },
+  { value: "otro", label: "Otro" },
+];
 
 export default function RegistrarPaciente() {
   const navigate = useNavigate();
@@ -236,6 +245,7 @@ export default function RegistrarPaciente() {
         dni: form.dni.trim(),
         email: form.email.trim(),
         telefono: form.telefono.trim() || null,
+        tipo_contacto: form.tipo_contacto,
         fecha_nacimiento: form.fecha_nacimiento,
         provincia_id: form.provincia_id,
         provincia_nombre: form.provincia_nombre,
@@ -378,6 +388,22 @@ export default function RegistrarPaciente() {
                 {errors.telefono ? (
                   <span className="field-error">{errors.telefono}</span>
                 ) : null}
+              </div>
+
+              <div className="field">
+                <label htmlFor="tipo_contacto">Contacto perteneciente a</label>
+                <select
+                  id="tipo_contacto"
+                  name="tipo_contacto"
+                  value={form.tipo_contacto}
+                  onChange={handleChange}
+                >
+                  {tiposContacto.map((tipo) => (
+                    <option key={tipo.value} value={tipo.value}>
+                      {tipo.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </section>

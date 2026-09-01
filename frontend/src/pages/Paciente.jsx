@@ -5,6 +5,18 @@ import { canAccess } from "../utils/permisos";
 import "../styles/Paciente.css";
 import { apiGet } from "../utils/api";
 
+const formatTipoContacto = (tipo) => {
+  const labels = {
+    personal: "Personal",
+    familiar: "Familiar",
+    tutor: "Tutor",
+    responsable: "Responsable",
+    otro: "Otro",
+  };
+
+  return labels[tipo] || "Personal";
+};
+
 export default function Paciente() {
   const { user } = useAuth();
   const puedeEditar = canAccess(user?.rol, "pacienteWrite");
@@ -131,6 +143,10 @@ export default function Paciente() {
                     <span className="value">{pac.telefono || "Sin dato"}</span>
                   </div>
                   <div className="detalle-item">
+                    <span className="label">Contacto</span>
+                    <span className="value">{formatTipoContacto(pac.tipo_contacto)}</span>
+                  </div>
+                  <div className="detalle-item">
                     <span className="label">Email</span>
                     <span className="value">{pac.email}</span>
                   </div>
@@ -242,6 +258,10 @@ export default function Paciente() {
               <div className="paciente-modal-item">
                 <span className="label">Telefono</span>
                 <span className="value">{pacienteSeleccionado.telefono || "Sin dato"}</span>
+              </div>
+              <div className="paciente-modal-item">
+                <span className="label">Contacto perteneciente a</span>
+                <span className="value">{formatTipoContacto(pacienteSeleccionado.tipo_contacto)}</span>
               </div>
               <div className="paciente-modal-item">
                 <span className="label">Provincia</span>

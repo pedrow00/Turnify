@@ -84,6 +84,14 @@ function App() {
             }
           />
           <Route
+            path="/turno/nuevo"
+            element={
+              <ProtectedRoute permission="turno">
+                <Turno mode="form" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/turno/listado"
             element={
               <ProtectedRoute permission="turno">

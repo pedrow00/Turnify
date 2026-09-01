@@ -18,6 +18,7 @@ CREATE TABLE pacientes (
     codigo_postal VARCHAR(10),
     piso VARCHAR(10),
     dpto VARCHAR(10),
+    tipo_contacto VARCHAR(30) DEFAULT 'personal',
 
     provincia_id VARCHAR(10) NOT NULL,
     provincia_nombre VARCHAR(100),
