@@ -76,12 +76,6 @@ export default function Login() {
             {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p>
-            ¿No tenés cuenta? <Link to="/register">Crear cuenta</Link>
-          </p>
-        </div>
       </div>
     </div>
   );

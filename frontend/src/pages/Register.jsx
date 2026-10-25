@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import "../styles/Register.css";
 
@@ -18,18 +18,13 @@ export default function Register() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
-  const { user, register } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      navigate("/turno", { replace: true });
-    }
-  }, [user, navigate]);
+  const [success, setSuccess] = useState("");
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
+    setSuccess("");
   };
 
   const handleSubmit = async (e) => {
@@ -40,14 +35,26 @@ export default function Register() {
       return;
     }
 
+    if (formData.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
     setLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       await register(formData.email, formData.password, Number(formData.rol_id));
-      navigate("/login", { state: { registered: true } });
+      setSuccess(`Usuario ${formData.email} creado correctamente`);
+      setFormData({
+        email: "",
+        password: "",
+        confirmPassword: "",
+        rol_id: formData.rol_id,
+      });
     } catch (err) {
-      setError(err.message || "No se pudo crear la cuenta");
+      setError(err.message || "No se pudo crear el usuario");
     } finally {
       setLoading(false);
     }
@@ -61,12 +68,13 @@ export default function Register() {
             <img src="/LogoSinLetras.png" alt="Turnify" className="logo-img" />
             <span className="logo-text">Turnify</span>
           </Link>
-          <h1>Crear Cuenta</h1>
-          <p>Completá tus datos para registrarte en el sistema</p>
+          <h1>Crear Usuario</h1>
+          <p>Creá un usuario y asignale un rol</p>
         </div>
 
         <form className="register-form" onSubmit={handleSubmit}>
           {error ? <div className="submit-error">{error}</div> : null}
+          {success ? <div className="submit-success">{success}</div> : null}
 
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -107,6 +115,7 @@ export default function Register() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••"
+                minLength={8}
                 required
               />
             </div>
@@ -120,19 +129,20 @@ export default function Register() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="••••••••"
+                minLength={8}
                 required
               />
             </div>
           </div>
 
           <button type="submit" className="btn-register" disabled={loading}>
-            {loading ? "Creando cuenta..." : "Crear Cuenta"}
+            {loading ? "Creando usuario..." : "Crear Usuario"}
           </button>
         </form>
 
         <div className="register-footer">
           <p>
-            ¿Ya tenés cuenta? <Link to="/login">Iniciar Sesión</Link>
+            <Link to="/">Volver al inicio</Link>
           </p>
         </div>
       </div>

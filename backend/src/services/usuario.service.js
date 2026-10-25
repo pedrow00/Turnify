@@ -17,13 +17,21 @@ const crearUsuario = async ({ email, password, rol_id }) => {
   if (rol.rows.length === 0) throw new Error('Rol no válido');
 
   const password_hash = await bcrypt.hash(password, 10);
-  const result = await pool.query(
-    `INSERT INTO usuarios (email, password_hash, rol_id)
-     VALUES ($1, $2, $3)
-     RETURNING id, email, rol_id`,
-    [email, password_hash, rol_id]
-  );
-  return result.rows[0];
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO usuarios (email, password_hash, rol_id)
+       VALUES ($1, $2, $3)
+       RETURNING id, email, rol_id`,
+      [email, password_hash, rol_id]
+    );
+    return result.rows[0];
+  } catch (error) {
+    if (error.code === '23505') {
+      throw new Error('Ya existe un usuario con ese email');
+    }
+    throw error;
+  }
 };
 
 module.exports = { buscarPorEmail, crearUsuario };

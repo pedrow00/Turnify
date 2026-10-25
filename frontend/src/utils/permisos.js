@@ -11,6 +11,7 @@ export const PERMISSIONS = {
   pacienteWrite: [ROLES.ADMIN, ROLES.SOCIO, ROLES.SECRETARIA],
   profesional: [ROLES.SECRETARIA, ROLES.SOCIO],
   consultorio: [ROLES.ADMIN, ROLES.SOCIO, ROLES.SECRETARIA],
+  usuarioAdmin: [ROLES.ADMIN],
 };
 
 export const NAV_ITEMS = [
@@ -37,6 +38,12 @@ export const NAV_ITEMS = [
     label: "Consultorios",
     permission: "consultorio",
     isActive: (path) => path.startsWith("/consultorio"),
+  },
+  {
+    to: "/register",
+    label: "Usuarios",
+    permission: "usuarioAdmin",
+    isActive: (path) => path === "/register",
   },
 ];
 

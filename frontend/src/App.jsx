@@ -27,7 +27,14 @@ function App() {
           <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute permission="usuarioAdmin">
+                <Register />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/paciente"
             element={
