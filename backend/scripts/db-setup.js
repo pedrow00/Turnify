@@ -126,6 +126,15 @@ async function createDemoUsers(client) {
     if (result.rowCount > 0) created.push(user.email);
   }
 
+  // El usuario profesional de demo se vincula al primer profesional cargado
+  // para que el listado de Usuarios muestre su especialidad y matricula.
+  await client.query(
+    `UPDATE usuarios
+        SET profesional_id = (SELECT id FROM profesionales ORDER BY id LIMIT 1)
+      WHERE email = 'profesional@turnify.test'
+        AND profesional_id IS NULL`
+  );
+
   return created;
 }
 

@@ -85,6 +85,32 @@
   color: var(--primary);
 }
 
+.usuarios-btn-peligro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0.7rem 1.2rem;
+  border: 1px solid #b91c1c;
+  border-radius: 0.5rem;
+  background: #b91c1c;
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.usuarios-btn-peligro:hover {
+  background: #991b1b;
+  border-color: #991b1b;
+}
+
+.usuarios-btn-peligro:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Avisos */
 .usuarios-alert {
   padding: 0.75rem 1rem;
@@ -180,7 +206,7 @@
 
 .usuarios-tabla {
   width: 100%;
-  min-width: 40rem;
+  min-width: 56rem;
   border-collapse: collapse;
 }
 
@@ -255,6 +281,67 @@
   color: var(--secondary);
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.usuarios-btn-accion.peligro {
+  color: #b91c1c;
+}
+
+.usuarios-btn-accion.peligro:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+/* Especialidad / MP */
+.usuarios-celda-especialidad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.usuarios-especialidad {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.usuarios-mp {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.usuarios-sin-dato {
+  color: var(--secondary);
+}
+
+/* Estado */
+.estado-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.estado-activo {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.estado-inactivo {
+  background: #f1f5f9;
+  color: var(--secondary);
+}
+
+.usuarios-fila-inactiva td {
+  background: #fcfcfd;
+}
+
+.usuarios-fila-inactiva .usuarios-email,
+.usuarios-fila-inactiva .usuarios-especialidad {
+  color: var(--text-light);
 }
 
 /* Badges de rol */
@@ -357,6 +444,16 @@
   margin-top: 1.25rem;
 }
 
+.usuarios-modal .usuarios-field + .usuarios-field {
+  margin-top: 0.9rem;
+}
+
+.usuarios-modal-texto {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
 /* Formulario */
 .usuarios-form-card {
   max-width: 52rem;
@@ -406,7 +503,8 @@
 
   .usuarios-btn-nuevo,
   .usuarios-btn-primario,
-  .usuarios-btn-secundario {
+  .usuarios-btn-secundario,
+  .usuarios-btn-peligro {
     width: 100%;
   }
 

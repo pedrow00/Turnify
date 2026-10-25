@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict atB9Wnbw3IGd364gVsp8kRpH4H9ckIuvNVmeP5fhk8J5rLtGPUBinnFeM7qd4aa
+\restrict 8dTKRxIGChulbmOa1ruieYwfMTemgytTH41oDFBGeXuFyDNhvLne9X5xiXN0jwi
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -497,7 +497,10 @@ CREATE TABLE public.usuarios (
     email character varying(150),
     password_hash text,
     rol_id integer,
-    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL
+    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL,
+    profesional_id integer,
+    activo boolean DEFAULT true NOT NULL,
+    fecha_baja timestamp with time zone
 );
 
 
@@ -804,6 +807,13 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- Name: usuarios_profesional_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX usuarios_profesional_id_unique ON public.usuarios USING btree (profesional_id);
+
+
+--
 -- Name: consultorio_especialidades consultorio_especialidades_especialidad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -884,6 +894,14 @@ ALTER TABLE ONLY public.turnos
 
 
 --
+-- Name: usuarios usuarios_profesional_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuarios
+    ADD CONSTRAINT usuarios_profesional_id_fkey FOREIGN KEY (profesional_id) REFERENCES public.profesionales(id) ON DELETE SET NULL;
+
+
+--
 -- Name: usuarios usuarios_rol_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -895,5 +913,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict atB9Wnbw3IGd364gVsp8kRpH4H9ckIuvNVmeP5fhk8J5rLtGPUBinnFeM7qd4aa
+\unrestrict 8dTKRxIGChulbmOa1ruieYwfMTemgytTH41oDFBGeXuFyDNhvLne9X5xiXN0jwi
 

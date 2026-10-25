@@ -29,6 +29,14 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
+    // La baja es logica: el usuario sigue existiendo pero no puede entrar.
+    // Se valida despues de la contraseña para no revelar que cuentas existen.
+    if (!usuario.activo) {
+      return res
+        .status(403)
+        .json({ error: 'Tu cuenta está desactivada. Contactá a un administrador.' });
+    }
+
     // Se regenera el ID de sesión al autenticar para evitar fijación de sesión
     // (que un atacante reuse un ID que le haya hecho llegar a la víctima).
     await regenerateSession(req);
@@ -79,7 +87,7 @@ const listar = async (req, res) => {
 
 const crear = async (req, res) => {
   try {
-    const { email, password, rol_id } = req.body;
+    const { email, password, rol_id, profesional_id } = req.body;
     const emailNormalizado = String(email || '').trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)) {
@@ -95,6 +103,7 @@ const crear = async (req, res) => {
       email: emailNormalizado,
       password,
       rol_id,
+      profesional_id,
     });
     res.status(201).json(usuario);
   } catch (error) {
@@ -113,6 +122,7 @@ const actualizarRol = async (req, res) => {
     const usuario = await usuarioService.actualizarRol({
       id: req.params.id,
       rol_id: req.body.rol_id,
+      profesional_id: req.body.profesional_id,
       usuarioActualId: req.session.user.id,
     });
     res.json(usuario);
@@ -141,6 +151,23 @@ const actualizarPassword = async (req, res) => {
   }
 };
 
+const actualizarEstado = async (req, res) => {
+  try {
+    const usuario = await usuarioService.actualizarEstado({
+      id: req.params.id,
+      activo: req.body.activo,
+      usuarioActualId: req.session.user.id,
+    });
+    res.json(usuario);
+  } catch (error) {
+    if (error.code) {
+      logger.error('Error al actualizar estado', { message: error.message });
+      return res.status(500).json({ error: 'No se pudo actualizar el estado' });
+    }
+    res.status(error.status || 400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -149,4 +176,5 @@ module.exports = {
   crear,
   actualizarRol,
   actualizarPassword,
+  actualizarEstado,
 };

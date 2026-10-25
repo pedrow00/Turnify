@@ -6,6 +6,7 @@ const {
   crear,
   actualizarRol,
   actualizarPassword,
+  actualizarEstado,
 } = require('../controllers/usuario.controller');
 
 // Gestion de usuarios: exclusivo de administradores. El alta publica ya no
@@ -16,5 +17,6 @@ router.get('/', listar);
 router.post('/', crear);
 router.put('/:id', actualizarRol);
 router.put('/:id/password', actualizarPassword);
+router.put('/:id/estado', actualizarEstado);
 
 module.exports = router;

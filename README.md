@@ -132,6 +132,9 @@ Más detalle sobre la base en [`backend/db/README.md`](backend/db/README.md).
   al cliente.
 - Los archivos `.env` están fuera del repositorio; solo se versionan los
   `.env.example`.
+- Los usuarios no se eliminan: se dan de baja (`activo = false`) y sus turnos
+  e historial se conservan. La sesión se valida contra la base en cada request,
+  así que una baja o un cambio de rol se aplican al instante.
 - Las contraseñas se guardan con `bcrypt`; los hashes no están en el
   repositorio, los genera el script de inicialización.
 

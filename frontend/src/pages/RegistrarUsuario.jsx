@@ -12,35 +12,53 @@ const ROLE_LABELS = {
 
 const rolLabel = (rol) => ROLE_LABELS[rol] || rol;
 
+const etiquetaProfesional = (profesional) => {
+  const nombre = [profesional.apellido, profesional.nombre]
+    .filter(Boolean)
+    .join(", ");
+  const especialidad = profesional.especialidad_nombre || "Sin especialidad";
+  return `${nombre} — ${especialidad}`;
+};
+
 export default function RegistrarUsuario() {
   const navigate = useNavigate();
 
   const [roles, setRoles] = useState([]);
+  const [profesionales, setProfesionales] = useState([]);
   const [rolId, setRolId] = useState("");
+  const [profesionalId, setProfesionalId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [cargandoRoles, setCargandoRoles] = useState(true);
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const cargarRoles = async () => {
+    const cargarCatalogos = async () => {
       try {
-        const data = await apiGet("/roles");
-        setRoles(data);
+        const [rolesData, profesionalesData] = await Promise.all([
+          apiGet("/roles"),
+          apiGet("/profesionales"),
+        ]);
+        setRoles(rolesData);
+        setProfesionales(profesionalesData);
 
-        const porDefecto = data.find((rol) => rol.nombre === "secretaria") || data[0];
+        const porDefecto =
+          rolesData.find((rol) => rol.nombre === "secretaria") || rolesData[0];
         if (porDefecto) setRolId(String(porDefecto.id));
       } catch (err) {
         setError(err.message || "No se pudieron cargar los roles");
       } finally {
-        setCargandoRoles(false);
+        setCargandoCatalogos(false);
       }
     };
 
-    cargarRoles();
+    cargarCatalogos();
   }, []);
+
+  const rolSeleccionado = roles.find((rol) => String(rol.id) === rolId);
+  const esProfesional = rolSeleccionado?.nombre === "profesional";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -54,6 +72,10 @@ export default function RegistrarUsuario() {
       setError("Las contraseñas no coinciden");
       return;
     }
+    if (esProfesional && !profesionalId) {
+      setError("Seleccioná el profesional asociado al usuario");
+      return;
+    }
 
     setLoading(true);
 
@@ -62,6 +84,7 @@ export default function RegistrarUsuario() {
         email: email.trim(),
         password,
         rol_id: Number(rolId),
+        profesional_id: esProfesional ? Number(profesionalId) : null,
       });
       navigate("/usuarios", { state: { creado: true } });
     } catch (err) {
@@ -105,8 +128,11 @@ export default function RegistrarUsuario() {
             <select
               id="usuario-rol-nuevo"
               value={rolId}
-              onChange={(event) => setRolId(event.target.value)}
-              disabled={cargandoRoles}
+              onChange={(event) => {
+                setRolId(event.target.value);
+                setProfesionalId("");
+              }}
+              disabled={cargandoCatalogos}
               required
             >
               {roles.map((rol) => (
@@ -116,6 +142,28 @@ export default function RegistrarUsuario() {
               ))}
             </select>
           </div>
+
+          {esProfesional ? (
+            <div className="usuarios-field">
+              <label htmlFor="usuario-profesional-nuevo">Profesional</label>
+              <select
+                id="usuario-profesional-nuevo"
+                value={profesionalId}
+                onChange={(event) => setProfesionalId(event.target.value)}
+                required
+              >
+                <option value="">Seleccioná un profesional</option>
+                {profesionales.map((profesional) => (
+                  <option key={profesional.id} value={profesional.id}>
+                    {etiquetaProfesional(profesional)}
+                  </option>
+                ))}
+              </select>
+              <span className="usuarios-hint">
+                De acá salen la especialidad y la matrícula.
+              </span>
+            </div>
+          ) : null}
 
           <div className="usuarios-field">
             <label htmlFor="usuario-password-nuevo">Contraseña</label>
