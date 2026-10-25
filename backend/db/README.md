@@ -6,7 +6,6 @@
 |---|---|---|
 | `schema.sql` | Generado con `pg_dump --schema-only` desde una base funcionando | **No** |
 | `seed.sql` | Escrito a mano: catálogos y datos de demostración | Sí |
-| `migrations/` | Cambios incrementales históricos, ya incluidos en `schema.sql` | — |
 
 `schema.sql` no se edita porque su valor es justamente ser una copia fiel de la
 estructura real. Si cambia el modelo de datos, se regenera:

@@ -10,12 +10,12 @@ distintos según el rol de quien inicia sesión.
 
 ## Roles
 
-| Rol | Qué puede hacer |
-|---|---|
-| `admin` | Todo, incluido crear usuarios |
-| `socio` | Pacientes, profesionales, consultorios y turnos |
-| `secretaria` | Pacientes, profesionales, consultorios y turnos |
-| `profesional` | Ver pacientes y gestionar turnos |
+|       Rol      |                 Qué puede hacer                 |
+|       ---      |                      ---                        |
+| `admin`        | Todo, incluido crear usuarios                   |
+| `socio`        | Pacientes, profesionales, consultorios y turnos |
+| `secretaria`   | Pacientes, profesionales, consultorios y turnos |
+| `profesional`  | Ver pacientes y gestionar turnos                |
 
 ## Puesta en marcha
 
@@ -100,7 +100,6 @@ backend/
   db/
     schema.sql        estructura completa, generada con pg_dump (no editar)
     seed.sql          catálogos y datos de demostración
-    migrations/       cambios históricos, ya incluidos en schema.sql
   scripts/
     db-setup.js       npm run db:setup / db:reset
     create-user.js    npm run user:create
