@@ -1,0 +1,113 @@
+/*
+ * Base comun de Turnify.
+ *
+ * Escala de breakpoints (mobile-first, valores unicos para todo el proyecto):
+ *   sm  -> 480px  (mobile chico)
+ *   md  -> 768px  (tablet / mobile grande)
+ *   lg  -> 1024px (tablet horizontal / notebook chica)
+ *   xl  -> 1280px (notebook / desktop)
+ *
+ * Las media queries CSS no admiten variables, por eso los valores se repiten
+ * usando siempre esta escala. Los breakpoints usados desde React viven en
+ * src/utils/breakpoints.js con los mismos numeros.
+ */
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #3b82f6;
+  --secondary: #64748b;
+  --background: #f8fafc;
+  --white: #ffffff;
+  --text-dark: #1e293b;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  --page-max: 1320px;
+  --page-gutter: clamp(1rem, 2.5vw, 2rem);
+  --touch-target: 2.75rem; /* 44px */
+  --nav-height: 4.25rem;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-gutter: 1rem;
+    --nav-height: 4rem;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  max-width: 100%;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--background);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  border: 0;
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenedor de todas las rutas: mantiene el alto disponible sin romper el scroll. */
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main > * {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}

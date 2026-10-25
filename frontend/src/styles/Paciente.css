@@ -1,65 +1,51 @@
-/* Variables */
-:root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --background: #f8fafc;
-  --white: #ffffff;
-  --text-dark: #1e293b;
-  --text-light: #64748b;
-  --border: #e2e8f0;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--background);
-  color: var(--text-dark);
-  line-height: 1.6;
-}
-
 /* Page */
 .paciente-page {
   width: 100%;
-  max-width: 1320px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--page-gutter);
   text-align: left;
 }
 
 /* Header */
 .paciente-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.header-title {
+  min-width: 0;
 }
 
 .header-title h1 {
-  font-size: 28px;
+  font-size: clamp(1.5rem, 3vw, 1.75rem);
   font-weight: 700;
   color: var(--text-dark);
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .header-title p {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-light);
 }
 
 .btn-nuevo {
-  padding: 12px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0.75rem 1.25rem;
   background: var(--primary);
   color: var(--white);
   text-decoration: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .btn-nuevo:hover {
@@ -69,32 +55,36 @@ body {
 /* Filters */
 .paciente-filters {
   display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .paciente-filters .search-box {
-  flex: 1;
-  max-width: 340px;
+  flex: 1 1 18rem;
+  width: 100%;
+  max-width: 34rem;
   position: relative;
+  min-width: 0;
 }
 
 .paciente-filters .search-box .search-icon {
   position: absolute;
-  left: 14px;
+  left: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .paciente-filters .search-box input {
   width: 100%;
-  padding: 12px 14px;
+  min-height: var(--touch-target);
+  padding: 0.75rem 0.875rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
   background: var(--white);
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .paciente-filters .search-box input:focus {
@@ -106,21 +96,21 @@ body {
 /* Grid - Layout en fila */
 .paciente-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1.25rem;
 }
 
 /* Card */
 .paciente-card {
   background: var(--white);
-  border-radius: 12px;
-  padding: 20px;
-  min-height: 286px;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--border);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .paciente-card:hover {
@@ -132,88 +122,94 @@ body {
 .paciente-header-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 65px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--border);
 }
 
 .paciente-avatar {
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   flex-shrink: 0;
 }
 
+.paciente-nombre {
+  min-width: 0;
+}
+
 .paciente-nombre h3 {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-dark);
+  overflow-wrap: anywhere;
 }
 
 .paciente-nombre .dni {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-light);
 }
 
 /* Detalles en grid 2x2 */
 .paciente-detalles {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  min-height: 92px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .detalle-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
+  min-width: 0;
 }
 
 .detalle-item .label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-light);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.03em;
 }
 
 .detalle-item .value {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dark);
   font-weight: 500;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Actions */
 .paciente-actions {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: auto;
 }
 
 .btn-ver,
 .btn-editar {
-  flex: 1;
+  flex: 1 1 7rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  font-size: 12px;
+  min-height: var(--touch-target);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .btn-ver {
@@ -241,7 +237,7 @@ body {
 .no-results {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 48px;
+  padding: clamp(2rem, 6vw, 3rem);
   color: var(--text-light);
 }
 
@@ -251,7 +247,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(8px);
   z-index: 200;
@@ -259,11 +255,11 @@ body {
 
 .paciente-modal {
   position: relative;
-  width: min(720px, 100%);
-  max-height: 90vh;
+  width: min(45rem, 100%);
+  max-height: calc(100svh - 1.5rem);
   overflow-y: auto;
-  padding: 28px;
-  border-radius: 24px;
+  padding: clamp(1.25rem, 4vw, 1.75rem);
+  border-radius: 1.5rem;
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
     rgba(255, 255, 255, 0.96);
@@ -273,17 +269,17 @@ body {
 
 .paciente-modal-close {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 38px;
-  height: 38px;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--text-light);
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .paciente-modal-close:hover {
@@ -294,67 +290,69 @@ body {
 .paciente-modal-header {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-bottom: 24px;
-  padding-right: 36px;
+  gap: 1.125rem;
+  margin-bottom: 1.5rem;
+  padding-right: 2.5rem;
 }
 
 .paciente-modal-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 24px;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1.5rem;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .paciente-modal-badge {
   display: inline-flex;
-  margin-bottom: 8px;
-  padding: 5px 10px;
+  margin-bottom: 0.5rem;
+  padding: 0.3125rem 0.625rem;
   border-radius: 999px;
   background: rgba(37, 99, 235, 0.1);
   color: var(--primary-dark);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .paciente-modal-header h2 {
-  margin-bottom: 4px;
-  font-size: 28px;
+  margin-bottom: 0.25rem;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
   color: var(--text-dark);
+  overflow-wrap: anywhere;
 }
 
 .paciente-modal-header p {
   color: var(--text-light);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .paciente-modal-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .paciente-modal-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px;
-  border-radius: 16px;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 1rem;
   background: rgba(248, 250, 252, 0.95);
   border: 1px solid rgba(226, 232, 240, 0.95);
 }
 
 .paciente-modal-item .label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--text-light);
   text-transform: uppercase;
@@ -362,45 +360,32 @@ body {
 }
 
 .paciente-modal-item .value {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-dark);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .paciente-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 22px;
+  gap: 0.625rem;
+  margin-top: 1.375rem;
 }
 
 .paciente-modal-button {
   flex: 0 0 auto;
-  min-width: 140px;
+  min-width: 8.75rem;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
-  .paciente-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .paciente-page {
-    padding: 24px 20px;
-  }
-
   .paciente-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
   }
 
   .btn-nuevo {
     width: 100%;
-    text-align: center;
   }
 
   .paciente-filters {
@@ -408,29 +393,18 @@ body {
   }
 
   .paciente-filters .search-box {
+    flex: 0 0 auto;
+    width: 100%;
     max-width: 100%;
   }
 
-  .paciente-grid {
+  .paciente-detalles,
+  .paciente-modal-grid {
     grid-template-columns: 1fr;
-  }
-
-  .paciente-detalles {
-    grid-template-columns: 1fr;
-  }
-
-  .paciente-modal {
-    padding: 22px 18px;
-    border-radius: 20px;
   }
 
   .paciente-modal-header {
     align-items: flex-start;
-    padding-right: 28px;
-  }
-
-  .paciente-modal-grid {
-    grid-template-columns: 1fr;
   }
 
   .paciente-modal-actions {

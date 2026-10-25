@@ -23,7 +23,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <Routes>
+        <main className="app-main">
+          <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -123,7 +124,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-        </Routes>
+          </Routes>
+        </main>
       </BrowserRouter>
     </AuthProvider>
   );

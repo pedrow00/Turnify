@@ -32,6 +32,8 @@ import {
 import {
   estaProfesionalIndisponible,
 } from "../utils/indisponibilidadProfesional";
+import { MEDIA } from "../utils/breakpoints";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const openDatePicker = (event) => {
   try {
@@ -43,6 +45,7 @@ const openDatePicker = (event) => {
 
 export default function Turno({ mode = "calendar" }) {
   const isFormPage = mode === "form";
+  const isMobile = useMediaQuery(MEDIA.mobile);
   const location = useLocation();
   const navigate = useNavigate();
   const [turnos, setTurnos] = useState([]);
@@ -831,16 +834,27 @@ export default function Turno({ mode = "calendar" }) {
           </div>
 
           <div className="turno-calendar">
+            {/* Desktop: alto segun contenido, sin scroller interno (la pagina scrollea). */}
             <FullCalendar
+              key={isMobile ? "calendar-mobile" : "calendar-desktop"}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
+              initialView={isMobile ? "timeGridDay" : "dayGridMonth"}
               locale="es"
-              height={isFormPage ? "auto" : "100%"}
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay",
-              }}
+              height={isMobile ? 520 : "auto"}
+              expandRows={false}
+              headerToolbar={
+                isMobile
+                  ? {
+                      left: "prev,next",
+                      center: "title",
+                      right: "timeGridWeek,timeGridDay",
+                    }
+                  : {
+                      left: "prev,next today",
+                      center: "title",
+                      right: "dayGridMonth,timeGridWeek,timeGridDay",
+                    }
+              }
               buttonText={{
                 today: "Hoy",
                 month: "Mes",
@@ -849,7 +863,7 @@ export default function Turno({ mode = "calendar" }) {
               }}
               selectable
               nowIndicator
-              dayMaxEvents={2}
+              dayMaxEvents={isMobile ? 1 : true}
               eventMaxStack={2}
               moreLinkClick="popover"
               events={calendarEvents}

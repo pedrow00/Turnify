@@ -1,20 +1,20 @@
 .turno-page {
   width: 100%;
-  max-width: 1320px;
+  max-width: var(--page-max, 1320px);
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--page-gutter, 2rem);
   text-align: left;
   box-sizing: border-box;
 }
 
 .turno-calendar-page {
-  flex: 1 1 auto;
-  height: calc(100svh - 83px);
-  max-width: none;
+  /* La pagina crece con el contenido; el unico scroll vertical es el del documento. */
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1600px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  padding: 10px 16px 12px;
+  padding: 0.625rem var(--page-gutter, 2rem) 0.75rem;
 }
 
 .turno-form-page {
@@ -28,10 +28,11 @@
 
 .turno-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 28px;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
 }
 
 .turno-calendar-page .turno-header {
@@ -40,16 +41,16 @@
 }
 
 .turno-header h1 {
-  margin: 0 0 4px;
+  margin: 0 0 0.25rem;
   color: var(--text-dark, #1e293b);
-  font-size: 32px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .turno-calendar-page .turno-header h1 {
-  font-size: 24px;
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
 }
 
 .turno-header p {
@@ -83,9 +84,9 @@
 }
 
 .turno-calendar-page .turno-header .btn-nuevo {
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
+  min-height: var(--touch-target, 44px);
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .turno-alert {
@@ -163,15 +164,15 @@
 
 .turno-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.375rem;
   align-items: start;
 }
 
 .turno-calendar-only-layout {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .turno-calendar-panel,
@@ -187,11 +188,12 @@
 }
 
 .turno-calendar-page .turno-calendar-panel {
-  height: 100%;
+  flex: 0 0 auto;
+  height: auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  padding: 10px;
+  overflow: visible;
+  padding: 0.625rem;
 }
 
 .turno-form-panel {
@@ -206,22 +208,24 @@
 
 .turno-toolbar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.125rem;
 }
 
 .turno-calendar-page .turno-toolbar {
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .turno-toolbar .search-box {
-  flex: 1;
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
 .turno-calendar-filters {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(220px, 280px) minmax(180px, 220px);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 0.8fr);
 }
 
 .turno-toolbar input,
@@ -230,14 +234,14 @@
 .turno-form select,
 .turno-form textarea {
   width: 100%;
-  min-height: 46px;
-  padding: 12px 14px;
+  min-height: var(--touch-target, 44px);
+  padding: 0.75rem 0.875rem;
   border: 1px solid var(--border, #e2e8f0);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   background: #fff;
   color: var(--text-dark, #1e293b);
   font: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -273,15 +277,15 @@
 
 .turno-calendar-page .turno-toolbar input,
 .turno-calendar-page .turno-toolbar select {
-  min-height: 38px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
+  min-height: var(--touch-target, 44px);
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
 }
 
 .turno-calendar-page .turno-calendar {
-  flex: 1 1 auto;
-  min-height: 0;
+  width: 100%;
+  overflow: visible;
 }
 
 .turno-calendar-page .turno-calendar-actions {
@@ -297,40 +301,48 @@
   --fc-button-hover-border-color: #1d4ed8;
   --fc-button-active-bg-color: #1d4ed8;
   --fc-button-active-border-color: #1d4ed8;
+  min-width: 0;
   color: var(--text-dark, #1e293b);
   font-family: inherit;
 }
 
 .turno-calendar .fc-toolbar {
-  padding: 14px;
+  flex-wrap: wrap;
+  padding: 0.875rem;
   margin: 0;
-  gap: 10px;
+  gap: 0.625rem;
+}
+
+.turno-calendar .fc-toolbar-chunk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 .turno-calendar-page .fc-toolbar {
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
 }
 
 .turno-calendar .fc-toolbar-title {
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 800;
 }
 
 .turno-calendar-page .fc-toolbar-title {
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .turno-calendar .fc-button {
-  border-radius: 8px;
-  font-size: 13px;
+  min-height: 2.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   box-shadow: none;
   text-transform: capitalize;
 }
 
 .turno-calendar-page .fc-button {
-  padding: 5px 8px;
-  font-size: 12px;
+  padding: 0.3125rem 0.5rem;
 }
 
 .turno-calendar .fc-daygrid-day-number,
@@ -359,6 +371,11 @@
 
 .turno-calendar .fc-daygrid-day-frame {
   min-height: 66px;
+}
+
+/* Desktop: filas de mes legibles sin forzar el alto del viewport. */
+.turno-calendar-page .fc-daygrid-day-frame {
+  min-height: 5rem;
 }
 
 .turno-calendar .fc-daygrid-event {
@@ -462,10 +479,10 @@
 }
 
 .turno-calendar-page .btn-ver-turnos {
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  min-height: var(--touch-target, 44px);
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
 }
 
 .turno-list-page-panel {
@@ -482,7 +499,7 @@
 
 .turno-list-filters {
   display: grid;
-  grid-template-columns: minmax(320px, 1.4fr) minmax(220px, 0.8fr) minmax(180px, 0.6fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.6fr);
   align-items: end;
 }
 
@@ -501,8 +518,8 @@
 }
 
 .turno-search-filter input {
-  min-height: 52px;
-  font-size: 15px;
+  min-height: 3.25rem;
+  font-size: 0.9375rem;
 }
 
 .turno-list .section-heading {
@@ -525,12 +542,13 @@
 .turno-list-item {
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px;
-  margin-bottom: 10px;
+  gap: 1rem;
+  padding: 0.875rem;
+  margin-bottom: 0.625rem;
   border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   background: #fff;
   text-align: left;
   cursor: pointer;
@@ -589,7 +607,7 @@
   display: grid;
   justify-items: end;
   align-content: center;
-  min-width: 96px;
+  min-width: 6rem;
 }
 
 .turno-list-time strong {
@@ -737,7 +755,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(8px);
   z-index: 220;
@@ -745,11 +763,11 @@
 
 .turno-modal {
   position: relative;
-  width: min(720px, 100%);
-  max-height: 90vh;
+  width: min(45rem, 100%);
+  max-height: calc(100svh - 1.5rem);
   overflow-y: auto;
-  padding: 28px;
-  border-radius: 20px;
+  padding: clamp(1.25rem, 4vw, 1.75rem);
+  border-radius: 1.25rem;
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
     rgba(255, 255, 255, 0.97);
@@ -759,15 +777,15 @@
 
 .turno-modal-close {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 38px;
-  height: 38px;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: var(--touch-target, 44px);
+  height: var(--touch-target, 44px);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--text-light, #64748b);
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
 }
 
@@ -779,49 +797,51 @@
 .turno-modal-header {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-bottom: 24px;
-  padding-right: 42px;
+  gap: 1.125rem;
+  margin-bottom: 1.5rem;
+  padding-right: 2.5rem;
 }
 
 .turno-modal-avatar {
-  width: 68px;
-  height: 68px;
-  border-radius: 22px;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.375rem;
   background: linear-gradient(135deg, var(--primary, #2563eb) 0%, var(--primary-dark, #1d4ed8) 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 800;
   flex-shrink: 0;
 }
 
 .turno-modal-header h2 {
-  margin: 8px 0 4px;
+  margin: 0.5rem 0 0.25rem;
   color: var(--text-dark, #1e293b);
-  font-size: 26px;
+  font-size: clamp(1.25rem, 4vw, 1.625rem);
+  overflow-wrap: anywhere;
 }
 
 .turno-modal-header p {
   color: var(--text-light, #64748b);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .turno-modal-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .turno-modal-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 1rem;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 14px;
+  border-radius: 0.875rem;
   background: rgba(248, 250, 252, 0.95);
 }
 
@@ -831,7 +851,7 @@
 
 .turno-modal-item .label {
   color: var(--text-light, #64748b);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -839,23 +859,26 @@
 
 .turno-modal-item .value {
   color: var(--text-dark, #1e293b);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .turno-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 22px;
+  gap: 0.625rem;
+  margin-top: 1.375rem;
 }
 
 .turno-modal-actions button {
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target, 44px);
+  padding: 0 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -872,11 +895,7 @@
   color: var(--text-dark, #1e293b);
 }
 
-@media (max-width: 1180px) {
-  .turno-layout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 1024px) {
   .turno-form-panel {
     position: static;
   }
@@ -884,7 +903,7 @@
 
 @media (max-width: 768px) {
   .turno-page {
-    padding: 24px 16px;
+    padding: 1.5rem var(--page-gutter);
   }
 
   .turno-header,
@@ -893,46 +912,93 @@
     align-items: stretch;
   }
 
+  .turno-header .btn-nuevo {
+    width: 100%;
+  }
+
   .turno-calendar-page {
+    flex: 1 1 auto;
     height: auto;
-    min-height: calc(100svh - 83px);
+    min-height: 0;
     overflow: visible;
+    padding: 0.75rem var(--page-gutter) 1rem;
   }
 
-  .turno-calendar-filters {
-    grid-template-columns: 1fr;
-  }
-
-  .turno-list-filters {
-    grid-template-columns: 1fr;
-  }
-
+  .turno-calendar-filters,
+  .turno-list-filters,
   .turno-summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .turno-calendar-panel,
-  .turno-form-panel {
-    padding: 16px;
+  .turno-calendar-page .turno-calendar-panel {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+    padding: 0.75rem;
   }
 
+  .turno-calendar-page .turno-calendar {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  /* Toolbar compacta: fecha arriba y navegacion + vistas en una sola fila. */
   .turno-calendar .fc-toolbar {
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "title title"
+      "nav views";
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem;
   }
 
   .turno-calendar .fc-toolbar-chunk {
-    display: flex;
     justify-content: center;
   }
 
-  .turno-list-item,
-  .turno-form-row {
-    grid-template-columns: 1fr;
+  .turno-calendar .fc-toolbar-chunk:nth-child(1) {
+    grid-area: nav;
+    justify-content: flex-start;
+  }
+
+  .turno-calendar .fc-toolbar-chunk:nth-child(2) {
+    grid-area: title;
+  }
+
+  .turno-calendar .fc-toolbar-chunk:nth-child(3) {
+    grid-area: views;
+    justify-content: flex-end;
+  }
+
+  .turno-calendar .fc-toolbar-title {
+    font-size: 1.125rem;
+    text-align: center;
+  }
+
+  .turno-calendar .fc-button {
+    min-height: var(--touch-target, 44px);
+    padding: 0.375rem 0.625rem;
+  }
+
+  .turno-calendar .fc-daygrid-day-frame {
+    min-height: 3.5rem;
   }
 
   .turno-list-item {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .turno-alert-error button,
+  .turno-list-edit {
+    min-height: var(--touch-target, 44px);
+  }
+
+  .turno-form-row {
+    grid-template-columns: 1fr;
   }
 
   .turno-list-time {
@@ -941,10 +1007,6 @@
 
   .turno-form-actions button {
     width: 100%;
-  }
-
-  .turno-modal {
-    padding: 22px 18px;
   }
 
   .turno-modal-header {
@@ -961,5 +1023,28 @@
 
   .turno-modal-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .turno-calendar-page .turno-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .turno-calendar-page .turno-header p {
+    font-size: 0.75rem;
+  }
+
+  .turno-calendar .fc-toolbar-title {
+    font-size: 1rem;
+  }
+
+  .turno-modal {
+    border-radius: 1rem;
+  }
+
+  .turno-modal-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
   }
 }
