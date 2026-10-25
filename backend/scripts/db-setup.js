@@ -15,6 +15,7 @@ const path = require('path');
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 const { getClientConfig } = require('../src/config/dbConfig');
+const { calcularCuil } = require('../src/utils/identidad');
 
 const args = process.argv.slice(2);
 const shouldReset = args.includes('--reset');
@@ -22,11 +23,42 @@ const resetConfirmed = args.includes('--yes') || args.includes('-y');
 
 const DB_NAME = process.env.DB_NAME || 'turnify';
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Turnify2026!';
+// Datos ficticios: el DNI es la base para calcular el CUIL. El usuario
+// profesional usa el mismo CUIL que su ficha en profesionales.
 const DEMO_USERS = [
-  { email: 'admin@turnify.test', rol: 'admin' },
-  { email: 'socio@turnify.test', rol: 'socio' },
-  { email: 'secretaria@turnify.test', rol: 'secretaria' },
-  { email: 'profesional@turnify.test', rol: 'profesional' },
+  {
+    email: 'admin@turnify.test',
+    rol: 'admin',
+    nombre: 'Ana',
+    apellido: 'Gómez',
+    nombre_usuario: 'ana.gomez',
+    dni: '30111222',
+  },
+  {
+    email: 'socio@turnify.test',
+    rol: 'socio',
+    nombre: 'Bruno',
+    apellido: 'Fernández',
+    nombre_usuario: 'bruno.fernandez',
+    dni: '28444555',
+  },
+  {
+    email: 'secretaria@turnify.test',
+    rol: 'secretaria',
+    nombre: 'Carla',
+    apellido: 'López',
+    nombre_usuario: 'carla.lopez',
+    dni: '32666777',
+  },
+  {
+    email: 'profesional@turnify.test',
+    rol: 'profesional',
+    nombre: 'Juan',
+    apellido: 'Puguita',
+    nombre_usuario: 'juan.puguita',
+    dni: '34567890',
+    cuil: '20345678901',
+  },
 ];
 
 const DB_DIR = path.join(__dirname, '..', 'db');
@@ -115,12 +147,25 @@ async function createDemoUsers(client) {
       throw new Error(`No existe el rol "${user.rol}" en la tabla roles`);
     }
 
+    const cuil = user.cuil || calcularCuil(user.dni).replace(/-/g, '');
+
     const result = await client.query(
-      `INSERT INTO usuarios (email, password_hash, rol_id)
-            VALUES ($1, $2, $3)
+      `INSERT INTO usuarios
+         (email, password_hash, rol_id, nombre, apellido,
+          nombre_usuario, dni, cuil)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (email) DO NOTHING
          RETURNING id`,
-      [user.email, passwordHash, rol.rows[0].id]
+      [
+        user.email,
+        passwordHash,
+        rol.rows[0].id,
+        user.nombre,
+        user.apellido,
+        user.nombre_usuario,
+        user.dni,
+        cuil,
+      ]
     );
 
     if (result.rowCount > 0) created.push(user.email);
@@ -143,9 +188,13 @@ function printCredentials() {
   log('  Usuarios demo:');
   log('  ---------------------------------------------------------------');
   for (const user of DEMO_USERS) {
-    log(`  ${user.rol.padEnd(12)} ${user.email.padEnd(30)} ${DEMO_PASSWORD}`);
+    log(
+      `  ${user.rol.padEnd(12)} ${user.email.padEnd(30)} ` +
+        `usuario: ${user.nombre_usuario.padEnd(16)} DNI: ${user.dni}`
+    );
   }
   log('  ---------------------------------------------------------------');
+  log(`  Contrasena para todos: ${DEMO_PASSWORD}`);
   log('  Cambiar la contrasena antes de exponer el sistema publicamente.');
   log('');
 }

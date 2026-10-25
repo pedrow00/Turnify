@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const usuarioService = require('../services/usuario.service');
+const { nombreVisible } = require('../utils/identidad');
 const { logger } = require('../utils/logger');
 
 const regenerateSession = (req) =>
@@ -14,12 +15,14 @@ const saveSession = (req) =>
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    const { identificador, password } = req.body;
+    if (!identificador || !password) {
+      return res
+        .status(400)
+        .json({ error: 'Usuario, email o DNI/CUIL y contraseña requeridos' });
     }
 
-    const usuario = await usuarioService.buscarPorEmail(email);
+    const usuario = await usuarioService.buscarPorIdentificador(identificador);
     if (!usuario) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -45,17 +48,14 @@ const login = async (req, res) => {
       id: usuario.id,
       email: usuario.email,
       rol: usuario.rol_nombre.toLowerCase(),
+      nombre_completo: nombreVisible(usuario),
     };
 
     await saveSession(req);
 
-    res.json({
-      id: usuario.id,
-      email: usuario.email,
-      rol: req.session.user.rol,
-    });
+    res.json(req.session.user);
   } catch (error) {
-    // No se loguea el email ni el hash: solo el motivo tecnico.
+    // No se loguea el identificador ni el hash: solo el motivo tecnico.
     logger.error('Error en login', { message: error.message });
     res.status(500).json({ error: 'No se pudo iniciar sesión' });
   }
@@ -76,6 +76,23 @@ const me = (req, res) => {
   res.json(req.session.user);
 };
 
+/**
+ * Perfil propio: mismos datos que el listado pero solo del usuario logueado,
+ * sin exponer el hash de la contrasena.
+ */
+const perfil = async (req, res) => {
+  try {
+    const usuario = await usuarioService.buscarPorId(req.session.user.id);
+    if (!usuario) {
+      return res.status(404).json({ error: 'El usuario no existe' });
+    }
+    res.json(usuario);
+  } catch (error) {
+    logger.error('Error al obtener el perfil', { message: error.message });
+    res.status(500).json({ error: 'No se pudo obtener el perfil' });
+  }
+};
+
 const listar = async (req, res) => {
   try {
     res.json(await usuarioService.listarUsuarios());
@@ -87,12 +104,18 @@ const listar = async (req, res) => {
 
 const crear = async (req, res) => {
   try {
-    const { email, password, rol_id, profesional_id } = req.body;
-    const emailNormalizado = String(email || '').trim().toLowerCase();
+    const {
+      email,
+      password,
+      rol_id,
+      profesional_id,
+      nombre,
+      apellido,
+      nombre_usuario,
+      dni,
+      cuil,
+    } = req.body;
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)) {
-      return res.status(400).json({ error: 'Email inválido' });
-    }
     if (String(password || '').length < 8) {
       return res
         .status(400)
@@ -100,10 +123,15 @@ const crear = async (req, res) => {
     }
 
     const usuario = await usuarioService.crearUsuario({
-      email: emailNormalizado,
+      email,
       password,
       rol_id,
       profesional_id,
+      nombre,
+      apellido,
+      nombre_usuario,
+      dni,
+      cuil,
     });
     res.status(201).json(usuario);
   } catch (error) {
@@ -112,6 +140,28 @@ const crear = async (req, res) => {
     if (error.code) {
       logger.error('Error al crear usuario', { message: error.message });
       return res.status(500).json({ error: 'No se pudo crear el usuario' });
+    }
+    res.status(error.status || 400).json({ error: error.message });
+  }
+};
+
+const actualizarDatos = async (req, res) => {
+  try {
+    const { email, nombre, apellido, nombre_usuario, dni, cuil } = req.body;
+    const usuario = await usuarioService.actualizarDatos({
+      id: req.params.id,
+      email,
+      nombre,
+      apellido,
+      nombre_usuario,
+      dni,
+      cuil,
+    });
+    res.json(usuario);
+  } catch (error) {
+    if (error.code) {
+      logger.error('Error al actualizar datos de usuario', { message: error.message });
+      return res.status(500).json({ error: 'No se pudieron actualizar los datos' });
     }
     res.status(error.status || 400).json({ error: error.message });
   }
@@ -151,6 +201,23 @@ const actualizarPassword = async (req, res) => {
   }
 };
 
+const actualizarPasswordPropia = async (req, res) => {
+  try {
+    await usuarioService.actualizarPasswordPropia({
+      id: req.session.user.id,
+      password_actual: req.body.password_actual,
+      password_nueva: req.body.password_nueva,
+    });
+    res.json({ message: 'Contraseña actualizada' });
+  } catch (error) {
+    if (error.code) {
+      logger.error('Error al cambiar contraseña propia', { message: error.message });
+      return res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
+    }
+    res.status(error.status || 400).json({ error: error.message });
+  }
+};
+
 const actualizarEstado = async (req, res) => {
   try {
     const usuario = await usuarioService.actualizarEstado({
@@ -172,9 +239,12 @@ module.exports = {
   login,
   logout,
   me,
+  perfil,
   listar,
   crear,
+  actualizarDatos,
   actualizarRol,
   actualizarPassword,
+  actualizarPasswordPropia,
   actualizarEstado,
 };

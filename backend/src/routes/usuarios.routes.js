@@ -4,6 +4,7 @@ const { requireAuth, requireRole } = require('../utils/authMiddleware');
 const {
   listar,
   crear,
+  actualizarDatos,
   actualizarRol,
   actualizarPassword,
   actualizarEstado,
@@ -15,7 +16,8 @@ router.use(requireAuth, requireRole(['admin']));
 
 router.get('/', listar);
 router.post('/', crear);
-router.put('/:id', actualizarRol);
+router.put('/:id', actualizarDatos);
+router.put('/:id/rol', actualizarRol);
 router.put('/:id/password', actualizarPassword);
 router.put('/:id/estado', actualizarEstado);
 

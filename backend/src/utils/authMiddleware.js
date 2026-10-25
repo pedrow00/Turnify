@@ -1,9 +1,10 @@
 const pool = require('../config/db');
+const { nombreVisible } = require('./identidad');
 
 /**
  * Valida la sesión contra la base en cada request:
  * - si el usuario fue dado de baja, se cierra la sesión;
- * - si un admin le cambió el rol, se usa el rol vigente y no el del login.
+ * - si un admin le cambió el rol o los datos, se usa lo vigente y no lo del login.
  */
 const requireAuth = async (req, res, next) => {
   const sessionUser = req.session?.user;
@@ -13,9 +14,12 @@ const requireAuth = async (req, res, next) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.id, u.email, u.activo, r.nombre AS rol
+      `SELECT u.id, u.email, u.activo, u.nombre, u.apellido,
+              p.nombre AS profesional_nombre, p.apellido AS profesional_apellido,
+              r.nombre AS rol
          FROM usuarios u
          JOIN roles r ON r.id = u.rol_id
+         LEFT JOIN profesionales p ON p.id = u.profesional_id
         WHERE u.id = $1`,
       [sessionUser.id]
     );
@@ -36,8 +40,18 @@ const requireAuth = async (req, res, next) => {
     }
 
     const rol = usuario.rol.toLowerCase();
-    if (rol !== sessionUser.rol || usuario.email !== sessionUser.email) {
-      req.session.user = { id: usuario.id, email: usuario.email, rol };
+    const nombreCompleto = nombreVisible(usuario);
+    if (
+      rol !== sessionUser.rol ||
+      usuario.email !== sessionUser.email ||
+      nombreCompleto !== sessionUser.nombre_completo
+    ) {
+      req.session.user = {
+        id: usuario.id,
+        email: usuario.email,
+        rol,
+        nombre_completo: nombreCompleto,
+      };
     }
 
     next();

@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { apiGet, apiPut } from "../utils/api";
+import { documentoDesde } from "../utils/documento";
+import CamposDocumento from "../components/CamposDocumento";
 import "../styles/Usuarios.css";
 
 const ROLE_LABELS = {
@@ -58,8 +61,171 @@ function Modal({ titulo, subtitulo, onClose, children }) {
   );
 }
 
+/**
+ * Menú de tres puntos por fila. Se renderiza en un portal con posición fija
+ * para que no lo recorte el scroll horizontal de la tabla.
+ */
+function MenuAcciones({
+  usuario,
+  esUsuarioActual,
+  guardando,
+  onEditar,
+  onRol,
+  onPassword,
+  onActivar,
+  onDesactivar,
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [posicion, setPosicion] = useState({ top: 0, left: 0 });
+  const botonRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const abrirMenu = () => {
+    const rect = botonRef.current.getBoundingClientRect();
+    const ancho = 208;
+    const alto = 190;
+
+    setPosicion({
+      top:
+        rect.bottom + 6 + alto > window.innerHeight
+          ? Math.max(8, rect.top - alto - 6)
+          : rect.bottom + 6,
+      left: Math.max(
+        8,
+        Math.min(rect.right - ancho, window.innerWidth - ancho - 8)
+      ),
+    });
+    setAbierto(true);
+  };
+
+  useEffect(() => {
+    if (!abierto) return undefined;
+
+    const cerrarAlClic = (event) => {
+      if (
+        menuRef.current?.contains(event.target) ||
+        botonRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setAbierto(false);
+    };
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") setAbierto(false);
+    };
+    const cerrarAlScrollear = () => setAbierto(false);
+
+    document.addEventListener("mousedown", cerrarAlClic);
+    document.addEventListener("keydown", cerrarConEscape);
+    window.addEventListener("scroll", cerrarAlScrollear, true);
+    window.addEventListener("resize", cerrarAlScrollear);
+
+    return () => {
+      document.removeEventListener("mousedown", cerrarAlClic);
+      document.removeEventListener("keydown", cerrarConEscape);
+      window.removeEventListener("scroll", cerrarAlScrollear, true);
+      window.removeEventListener("resize", cerrarAlScrollear);
+    };
+  }, [abierto]);
+
+  const ejecutar = (accion) => {
+    setAbierto(false);
+    accion();
+  };
+
+  return (
+    <>
+      <button
+        ref={botonRef}
+        type="button"
+        className={`usuarios-menu-boton ${abierto ? "is-open" : ""}`}
+        onClick={() => (abierto ? setAbierto(false) : abrirMenu())}
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        aria-label={`Acciones para ${usuario.nombre_completo}`}
+        disabled={guardando}
+      >
+        ⋮
+      </button>
+
+      {abierto
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className="usuarios-menu"
+              style={{ top: posicion.top, left: posicion.left }}
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="usuarios-menu-item"
+                onClick={() => ejecutar(onEditar)}
+              >
+                Editar datos
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                className="usuarios-menu-item"
+                onClick={() => ejecutar(onRol)}
+                disabled={esUsuarioActual}
+                title={
+                  esUsuarioActual
+                    ? "No podés cambiar tu propio rol"
+                    : "Cambiar el rol de este usuario"
+                }
+              >
+                Cambiar rol
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                className="usuarios-menu-item"
+                onClick={() => ejecutar(onPassword)}
+              >
+                Cambiar contraseña
+              </button>
+
+              <div className="usuarios-menu-separador" />
+
+              {usuario.activo ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="usuarios-menu-item peligro"
+                  onClick={() => ejecutar(onDesactivar)}
+                  disabled={esUsuarioActual}
+                  title={
+                    esUsuarioActual
+                      ? "No podés desactivar tu propio usuario"
+                      : "Dar de baja al usuario"
+                  }
+                >
+                  Desactivar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="usuarios-menu-item"
+                  onClick={() => ejecutar(onActivar)}
+                >
+                  Activar
+                </button>
+              )}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
+  );
+}
+
 export default function Usuario() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const location = useLocation();
 
   const [usuarios, setUsuarios] = useState([]);
@@ -73,6 +239,14 @@ export default function Usuario() {
   const [mensaje, setMensaje] = useState(
     location.state?.creado ? "Usuario creado correctamente." : ""
   );
+
+  const [usuarioEditar, setUsuarioEditar] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editApellido, setEditApellido] = useState("");
+  const [editUsuario, setEditUsuario] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editTipoDocumento, setEditTipoDocumento] = useState("dni");
+  const [editDocumento, setEditDocumento] = useState("");
 
   const [usuarioRol, setUsuarioRol] = useState(null);
   const [nuevoRol, setNuevoRol] = useState("");
@@ -106,6 +280,7 @@ export default function Usuario() {
   }, []);
 
   const cerrarModales = () => {
+    setUsuarioEditar(null);
     setUsuarioRol(null);
     setUsuarioPassword(null);
     setUsuarioEstado(null);
@@ -113,7 +288,9 @@ export default function Usuario() {
   };
 
   useEffect(() => {
-    if (!usuarioRol && !usuarioPassword && !usuarioEstado) return undefined;
+    if (!usuarioEditar && !usuarioRol && !usuarioPassword && !usuarioEstado) {
+      return undefined;
+    }
 
     const handleEscape = (event) => {
       if (event.key === "Escape") cerrarModales();
@@ -121,7 +298,7 @@ export default function Usuario() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [usuarioRol, usuarioPassword, usuarioEstado]);
+  }, [usuarioEditar, usuarioRol, usuarioPassword, usuarioEstado]);
 
   const termino = busqueda.trim().toLowerCase();
   const terminoDigitos = termino.replace(/\D/g, "");
@@ -166,6 +343,19 @@ export default function Usuario() {
     setEstadoFiltro("todos");
   };
 
+  const abrirEditar = (usuario) => {
+    setUsuarioEditar(usuario);
+    setEditNombre(usuario.nombre || "");
+    setEditApellido(usuario.apellido || "");
+    setEditUsuario(usuario.nombre_usuario || "");
+    setEditEmail(usuario.email || "");
+    setEditTipoDocumento("dni");
+    // Si la identidad es estimada no se precarga para no guardar datos falsos.
+    setEditDocumento(usuario.identidad_derivada ? "" : usuario.dni || "");
+    setModalError("");
+    setMensaje("");
+  };
+
   const abrirRol = (usuario) => {
     setUsuarioRol(usuario);
     setNuevoRol(String(usuario.rol_id));
@@ -193,6 +383,48 @@ export default function Usuario() {
   const rolSeleccionado = roles.find((rol) => String(rol.id) === nuevoRol);
   const esProfesional = rolSeleccionado?.nombre === "profesional";
 
+  const guardarDatos = async (event) => {
+    event.preventDefault();
+    setModalError("");
+
+    const { dni, cuil } = documentoDesde(editTipoDocumento, editDocumento);
+
+    if (editTipoDocumento === "dni" && (dni.length < 7 || dni.length > 8)) {
+      setModalError("El DNI debe tener 7 u 8 dígitos");
+      return;
+    }
+    if (editTipoDocumento === "cuil" && cuil.length !== 11) {
+      setModalError("El CUIL debe tener 11 dígitos");
+      return;
+    }
+
+    setGuardando(true);
+
+    try {
+      const actualizado = await apiPut(`/usuarios/${usuarioEditar.id}`, {
+        email: editEmail.trim(),
+        nombre: editNombre.trim(),
+        apellido: editApellido.trim(),
+        nombre_usuario: editUsuario.trim(),
+        dni,
+        cuil,
+      });
+
+      setUsuarios((prev) =>
+        prev.map((item) => (item.id === actualizado.id ? actualizado : item))
+      );
+
+      if (actualizado.id === user?.id) await refreshUser();
+
+      setUsuarioEditar(null);
+      setMensaje(`Datos de ${actualizado.email} actualizados.`);
+    } catch (err) {
+      setModalError(err.message || "No se pudieron actualizar los datos");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const guardarRol = async (event) => {
     event.preventDefault();
     setModalError("");
@@ -205,7 +437,7 @@ export default function Usuario() {
     setGuardando(true);
 
     try {
-      const actualizado = await apiPut(`/usuarios/${usuarioRol.id}`, {
+      const actualizado = await apiPut(`/usuarios/${usuarioRol.id}/rol`, {
         rol_id: Number(nuevoRol),
         profesional_id: esProfesional ? Number(nuevoProfesional) : null,
       });
@@ -378,7 +610,22 @@ export default function Usuario() {
                         {usuario.nombre_completo}
                       </span>
                     </td>
-                    <td className="usuarios-usuario">@{usuario.nombre_usuario}</td>
+                    <td className="usuarios-usuario">
+                      <span
+                        className={
+                          usuario.usuario_derivado
+                            ? "usuarios-dato-derivado"
+                            : ""
+                        }
+                        title={
+                          usuario.usuario_derivado
+                            ? "Deducido del email; un admin puede definirlo"
+                            : undefined
+                        }
+                      >
+                        @{usuario.nombre_usuario}
+                      </span>
+                    </td>
                     <td className="usuarios-email">{usuario.email}</td>
                     <td>
                       <span className={`rol-badge rol-${usuario.rol_nombre}`}>
@@ -447,54 +694,17 @@ export default function Usuario() {
                     <td className="usuarios-fecha">
                       {formatFecha(usuario.fecha_creacion)}
                     </td>
-                    <td>
-                      <div className="usuarios-acciones">
-                        <button
-                          type="button"
-                          className="usuarios-btn-accion"
-                          onClick={() => abrirRol(usuario)}
-                          disabled={esUsuarioActual}
-                          title={
-                            esUsuarioActual
-                              ? "No podés cambiar tu propio rol"
-                              : "Cambiar el rol de este usuario"
-                          }
-                        >
-                          Cambiar rol
-                        </button>
-                        <button
-                          type="button"
-                          className="usuarios-btn-accion"
-                          onClick={() => abrirPassword(usuario)}
-                        >
-                          Contraseña
-                        </button>
-
-                        {usuario.activo ? (
-                          <button
-                            type="button"
-                            className="usuarios-btn-accion peligro"
-                            onClick={() => confirmarBaja(usuario)}
-                            disabled={esUsuarioActual}
-                            title={
-                              esUsuarioActual
-                                ? "No podés desactivar tu propio usuario"
-                                : "Dar de baja al usuario"
-                            }
-                          >
-                            Desactivar
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="usuarios-btn-accion"
-                            onClick={() => cambiarEstado(usuario, true)}
-                            disabled={guardando}
-                          >
-                            Activar
-                          </button>
-                        )}
-                      </div>
+                    <td className="usuarios-col-acciones">
+                      <MenuAcciones
+                        usuario={usuario}
+                        esUsuarioActual={esUsuarioActual}
+                        guardando={guardando}
+                        onEditar={() => abrirEditar(usuario)}
+                        onRol={() => abrirRol(usuario)}
+                        onPassword={() => abrirPassword(usuario)}
+                        onActivar={() => cambiarEstado(usuario, true)}
+                        onDesactivar={() => confirmarBaja(usuario)}
+                      />
                     </td>
                   </tr>
                 );
@@ -513,6 +723,85 @@ export default function Usuario() {
           ) : null}
         </div>
       </div>
+
+      {usuarioEditar ? (
+        <Modal
+          titulo="Editar datos"
+          subtitulo={usuarioEditar.email}
+          onClose={cerrarModales}
+        >
+          {modalError ? <div className="usuarios-alert error">{modalError}</div> : null}
+
+          <form onSubmit={guardarDatos}>
+            <div className="usuarios-field">
+              <label htmlFor="usuario-editar-nombre">Nombre</label>
+              <input
+                id="usuario-editar-nombre"
+                type="text"
+                value={editNombre}
+                onChange={(event) => setEditNombre(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="usuarios-field">
+              <label htmlFor="usuario-editar-apellido">Apellido</label>
+              <input
+                id="usuario-editar-apellido"
+                type="text"
+                value={editApellido}
+                onChange={(event) => setEditApellido(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="usuarios-field">
+              <label htmlFor="usuario-editar-usuario">Nombre de usuario</label>
+              <input
+                id="usuario-editar-usuario"
+                type="text"
+                value={editUsuario}
+                onChange={(event) => setEditUsuario(event.target.value)}
+                pattern="[A-Za-z0-9._-]{3,30}"
+                title="Entre 3 y 30 caracteres: letras, números, punto, guion o guion bajo"
+                required
+              />
+            </div>
+
+            <div className="usuarios-field">
+              <label htmlFor="usuario-editar-email">Email</label>
+              <input
+                id="usuario-editar-email"
+                type="email"
+                value={editEmail}
+                onChange={(event) => setEditEmail(event.target.value)}
+                required
+              />
+            </div>
+
+            <CamposDocumento
+              idPrefix="usuario-editar"
+              tipo={editTipoDocumento}
+              onTipoChange={setEditTipoDocumento}
+              numero={editDocumento}
+              onNumeroChange={setEditDocumento}
+            />
+
+            <div className="usuarios-modal-actions">
+              <button
+                type="button"
+                className="usuarios-btn-secundario"
+                onClick={cerrarModales}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="usuarios-btn-primario" disabled={guardando}>
+                {guardando ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
 
       {usuarioRol ? (
         <Modal

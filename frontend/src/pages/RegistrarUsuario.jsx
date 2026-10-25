@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../utils/api";
+import { documentoDesde, soloDigitos } from "../utils/documento";
+import CamposDocumento from "../components/CamposDocumento";
 import "../styles/Usuarios.css";
 
 const ROLE_LABELS = {
@@ -27,7 +29,12 @@ export default function RegistrarUsuario() {
   const [profesionales, setProfesionales] = useState([]);
   const [rolId, setRolId] = useState("");
   const [profesionalId, setProfesionalId] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [nombreUsuario, setNombreUsuario] = useState("");
   const [email, setEmail] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState("dni");
+  const [documento, setDocumento] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
@@ -60,10 +67,38 @@ export default function RegistrarUsuario() {
   const rolSeleccionado = roles.find((rol) => String(rol.id) === rolId);
   const esProfesional = rolSeleccionado?.nombre === "profesional";
 
+  // Al elegir el profesional se completan nombre, apellido y documento desde
+  // su ficha; después se pueden corregir a mano.
+  const seleccionarProfesional = (value) => {
+    setProfesionalId(value);
+
+    const profesional = profesionales.find(
+      (item) => String(item.id) === String(value)
+    );
+    if (!profesional) return;
+
+    setNombre(profesional.nombre || "");
+    setApellido(profesional.apellido || "");
+    if (profesional.cuil) {
+      setTipoDocumento("cuil");
+      setDocumento(soloDigitos(profesional.cuil));
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
+    const { dni, cuil } = documentoDesde(tipoDocumento, documento);
+
+    if (tipoDocumento === "dni" && (dni.length < 7 || dni.length > 8)) {
+      setError("El DNI debe tener 7 u 8 dígitos");
+      return;
+    }
+    if (tipoDocumento === "cuil" && cuil.length !== 11) {
+      setError("El CUIL debe tener 11 dígitos");
+      return;
+    }
     if (password.length < 8) {
       setError("La contraseña debe tener al menos 8 caracteres");
       return;
@@ -85,6 +120,11 @@ export default function RegistrarUsuario() {
         password,
         rol_id: Number(rolId),
         profesional_id: esProfesional ? Number(profesionalId) : null,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        nombre_usuario: nombreUsuario.trim(),
+        dni,
+        cuil,
       });
       navigate("/usuarios", { state: { creado: true } });
     } catch (err) {
@@ -99,7 +139,7 @@ export default function RegistrarUsuario() {
       <div className="usuarios-header">
         <div className="usuarios-header-title">
           <h1>Nuevo usuario</h1>
-          <p>Creá una cuenta y asignale un rol</p>
+          <p>Creá una cuenta con sus datos y asignale un rol</p>
         </div>
         <Link to="/usuarios" className="usuarios-btn-secundario">
           Volver al listado
@@ -110,6 +150,48 @@ export default function RegistrarUsuario() {
         {error ? <div className="usuarios-alert error">{error}</div> : null}
 
         <div className="usuarios-form-grid">
+          <div className="usuarios-field">
+            <label htmlFor="usuario-nombre">Nombre</label>
+            <input
+              id="usuario-nombre"
+              type="text"
+              value={nombre}
+              onChange={(event) => setNombre(event.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div className="usuarios-field">
+            <label htmlFor="usuario-apellido">Apellido</label>
+            <input
+              id="usuario-apellido"
+              type="text"
+              value={apellido}
+              onChange={(event) => setApellido(event.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div className="usuarios-field">
+            <label htmlFor="usuario-nombre-usuario">Nombre de usuario</label>
+            <input
+              id="usuario-nombre-usuario"
+              type="text"
+              value={nombreUsuario}
+              onChange={(event) => setNombreUsuario(event.target.value)}
+              placeholder="ana.gomez"
+              autoComplete="off"
+              pattern="[A-Za-z0-9._-]{3,30}"
+              title="Entre 3 y 30 caracteres: letras, números, punto, guion o guion bajo"
+              required
+            />
+            <span className="usuarios-hint">
+              Sirve para iniciar sesión, además del email o el DNI/CUIL.
+            </span>
+          </div>
+
           <div className="usuarios-field">
             <label htmlFor="usuario-email">Email</label>
             <input
@@ -122,6 +204,14 @@ export default function RegistrarUsuario() {
               required
             />
           </div>
+
+          <CamposDocumento
+            idPrefix="usuario-nuevo"
+            tipo={tipoDocumento}
+            onTipoChange={setTipoDocumento}
+            numero={documento}
+            onNumeroChange={setDocumento}
+          />
 
           <div className="usuarios-field">
             <label htmlFor="usuario-rol-nuevo">Rol</label>
@@ -149,7 +239,7 @@ export default function RegistrarUsuario() {
               <select
                 id="usuario-profesional-nuevo"
                 value={profesionalId}
-                onChange={(event) => setProfesionalId(event.target.value)}
+                onChange={(event) => seleccionarProfesional(event.target.value)}
                 required
               >
                 <option value="">Seleccioná un profesional</option>
@@ -160,7 +250,8 @@ export default function RegistrarUsuario() {
                 ))}
               </select>
               <span className="usuarios-hint">
-                De acá salen la especialidad y la matrícula.
+                De acá salen la especialidad y la matrícula. También completa
+                los datos personales.
               </span>
             </div>
           ) : null}

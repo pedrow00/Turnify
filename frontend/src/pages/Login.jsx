@@ -4,7 +4,7 @@ import { useAuth } from "../context/useAuth";
 import "../styles/Login.css";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [identificador, setIdentificador] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export default function Login() {
     setError("");
 
     try {
-      await login(email, password);
+      await login(identificador, password);
       navigate(location.state?.from?.pathname || "/turno", { replace: true });
     } catch (err) {
       setError(err.message || "No se pudo iniciar sesión");
@@ -49,13 +49,14 @@ export default function Login() {
           {error ? <div className="submit-error">{error}</div> : null}
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="identificador">Usuario, email o DNI/CUIL</label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              type="text"
+              id="identificador"
+              value={identificador}
+              onChange={(e) => setIdentificador(e.target.value)}
+              placeholder="ana.gomez, tu@email.com o 30.111.222"
+              autoComplete="username"
               required
             />
           </div>

@@ -41,12 +41,25 @@ Detalles de implementación:
 
 ## Usuarios
 
-`db:setup` crea cuatro usuarios demo (ver el README principal). El usuario
+`db:setup` crea cuatro usuarios demo (ver el README principal) con nombre,
+apellido, nombre de usuario, DNI y CUIL. El usuario
 `profesional@turnify.test` queda vinculado al primer profesional del seed, que
 es de donde el listado de Usuarios toma la especialidad, la matrícula y el
-CUIL. Los usuarios sin profesional vinculado muestran nombre y nombre de
-usuario deducidos del email, y un DNI/CUIL estimado que la interfaz marca como
-tal. Para una base que ya existe, o para recuperar el acceso:
+CUIL.
+
+La identidad (`nombre`, `apellido`, `nombre_usuario`, `dni`, `cuil`) se guarda
+en `usuarios`. `nombre_usuario`, `dni` y `cuil` tienen índices únicos porque
+sirven para iniciar sesión. El CUIL se puede cargar directamente o calcularse
+desde el DNI con el dígito verificador de AFIP: el formulario permite cargar
+uno y completa el otro.
+
+Los usuarios que ya existían antes de estos campos (o los creados con
+`user:create`) pueden iniciar sesión con su email. Mientras no tengan datos
+cargados, el listado deduce nombre y usuario del email y muestra un DNI/CUIL
+estimado marcado como tal. Un admin puede completarlos desde **Usuarios →
+Editar datos**.
+
+Para una base que ya existe, o para recuperar el acceso:
 
 ```bash
 npm run user:create -- --email admin@turnify.test --password "TuPassword123" --rol admin

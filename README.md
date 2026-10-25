@@ -63,12 +63,16 @@ El frontend apunta a `http://localhost:3000` mediante
 
 `npm run db:setup` crea estos usuarios (contraseña `Turnify2026!`):
 
-| Email | Rol |
-|---|---|
-| `admin@turnify.test` | admin |
-| `socio@turnify.test` | socio |
-| `secretaria@turnify.test` | secretaria |
-| `profesional@turnify.test` | profesional |
+| Email | Usuario | DNI | Rol |
+|---|---|---|---|
+| `admin@turnify.test` | `ana.gomez` | 30.111.222 | admin |
+| `socio@turnify.test` | `bruno.fernandez` | 28.444.555 | socio |
+| `secretaria@turnify.test` | `carla.lopez` | 32.666.777 | secretaria |
+| `profesional@turnify.test` | `juan.puguita` | 34.567.890 | profesional |
+
+Se puede iniciar sesión con el email, el nombre de usuario, el DNI o el CUIL.
+El CUIL de cada usuario demo se calcula a partir del DNI con el dígito
+verificador de AFIP.
 
 Los datos de pacientes, profesionales y turnos del seed son inventados. Las
 fechas de los turnos se calculan al momento de cargar el seed, así que la
@@ -109,7 +113,7 @@ backend/
     controllers/      entrada HTTP
     routes/           rutas y permisos por rol
     services/         consultas SQL y reglas de negocio
-    utils/            logger y middlewares de autenticación
+    utils/            logger, autenticación e identidad (DNI/CUIL)
 frontend/
   src/
     pages/            pantallas
@@ -124,10 +128,15 @@ Más detalle sobre la base en [`backend/db/README.md`](backend/db/README.md).
 ## Decisiones de seguridad
 
 - La gestión de usuarios **no es pública**: solo un `admin` puede listar,
-  crear, cambiar el rol y restablecer contraseñas. La primera cuenta se crea
-  con `npm run user:create`.
-- El login tiene límite de 10 intentos por IP cada 15 minutos.
+  crear, editar datos, cambiar el rol y restablecer contraseñas. La primera
+  cuenta se crea con `npm run user:create`.
+- Cada usuario puede entrar a **Mi perfil** para ver sus datos (solo lectura)
+  y cambiar su propia contraseña pidiendo la actual.
+- El login acepta email, nombre de usuario, DNI o CUIL, y tiene límite de 10
+  intentos por IP cada 15 minutos.
 - La sesión se regenera al iniciar sesión, para evitar fijación de sesión.
+- La sesión se valida contra la base en cada request: una baja o un cambio de
+  rol se aplican al instante.
 - Los errores de base de datos se registran en el servidor y no se devuelven
   al cliente.
 - Los archivos `.env` están fuera del repositorio; solo se versionan los

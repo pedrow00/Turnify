@@ -253,43 +253,108 @@
   white-space: nowrap;
 }
 
-.usuarios-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+/* La columna de acciones queda fija a la derecha: en pantallas chicas la
+   tabla se desplaza pero los botones siguen visibles. */
+.usuarios-tabla thead th.usuarios-col-acciones,
+.usuarios-tabla tbody td.usuarios-col-acciones {
+  position: sticky;
+  right: 0;
+  background: var(--white);
+  box-shadow: -8px 0 10px -10px rgba(15, 23, 42, 0.45);
 }
 
-.usuarios-btn-accion {
-  min-height: 2.25rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--border);
+.usuarios-tabla thead th.usuarios-col-acciones {
+  z-index: 2;
+  background: #f8fafc;
+}
+
+.usuarios-tabla tbody td.usuarios-col-acciones {
+  z-index: 1;
+}
+
+.usuarios-tabla tbody tr:hover td.usuarios-col-acciones {
+  background: #f8fafc;
+}
+
+.usuarios-fila-inactiva td.usuarios-col-acciones {
+  background: #fcfcfd;
+}
+
+.usuarios-menu-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: 0.4rem;
-  background: var(--white);
-  color: var(--primary);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  background: transparent;
+  color: var(--text-dark);
+  font-size: 1.3rem;
+  line-height: 1;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.usuarios-btn-accion:hover:not(:disabled) {
-  background: #eff6ff;
-  border-color: var(--primary);
+.usuarios-menu-boton:hover,
+.usuarios-menu-boton.is-open {
+  background: #f1f5f9;
+  border-color: var(--border);
 }
 
-.usuarios-btn-accion:disabled {
-  color: var(--secondary);
+.usuarios-menu-boton:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  opacity: 0.6;
 }
 
-.usuarios-btn-accion.peligro {
+/* Menu flotante de acciones (se monta en un portal, por eso position: fixed). */
+.usuarios-menu {
+  position: fixed;
+  z-index: 950;
+  width: 13rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--white);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.usuarios-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text-dark);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.usuarios-menu-item:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.usuarios-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.usuarios-menu-item.peligro {
   color: #b91c1c;
 }
 
-.usuarios-btn-accion.peligro:hover:not(:disabled) {
+.usuarios-menu-item.peligro:hover:not(:disabled) {
   background: #fef2f2;
-  border-color: #fca5a5;
+}
+
+.usuarios-menu-separador {
+  height: 1px;
+  margin: 0.3rem 0.4rem;
+  background: var(--border);
 }
 
 /* Especialidad / MP */

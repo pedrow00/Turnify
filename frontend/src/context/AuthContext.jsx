@@ -38,8 +38,8 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = async (email, password) => {
-    const data = await apiPost("/auth/login", { email, password });
+  const login = async (identificador, password) => {
+    const data = await apiPost("/auth/login", { identificador, password });
     setUser(data);
     return data;
   };

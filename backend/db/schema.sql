@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 8dTKRxIGChulbmOa1ruieYwfMTemgytTH41oDFBGeXuFyDNhvLne9X5xiXN0jwi
+\restrict eyFxhQRa8IfkT76X3tbNMhj3K7aOK3oA8zbzipLSGLdrjtxKp5KOXi0VTD6INvn
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -500,7 +500,12 @@ CREATE TABLE public.usuarios (
     fecha_creacion timestamp with time zone DEFAULT now() NOT NULL,
     profesional_id integer,
     activo boolean DEFAULT true NOT NULL,
-    fecha_baja timestamp with time zone
+    fecha_baja timestamp with time zone,
+    nombre character varying(100),
+    apellido character varying(100),
+    nombre_usuario character varying(50),
+    dni character varying(8),
+    cuil character varying(11)
 );
 
 
@@ -807,6 +812,27 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- Name: usuarios_cuil_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX usuarios_cuil_unique ON public.usuarios USING btree (cuil);
+
+
+--
+-- Name: usuarios_dni_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX usuarios_dni_unique ON public.usuarios USING btree (dni);
+
+
+--
+-- Name: usuarios_nombre_usuario_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX usuarios_nombre_usuario_unique ON public.usuarios USING btree (lower((nombre_usuario)::text));
+
+
+--
 -- Name: usuarios_profesional_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -913,5 +939,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 8dTKRxIGChulbmOa1ruieYwfMTemgytTH41oDFBGeXuFyDNhvLne9X5xiXN0jwi
+\unrestrict eyFxhQRa8IfkT76X3tbNMhj3K7aOK3oA8zbzipLSGLdrjtxKp5KOXi0VTD6INvn
 

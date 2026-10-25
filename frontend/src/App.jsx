@@ -6,6 +6,7 @@ import Inicio from "./pages/Inicio";
 import Login from "./pages/Login";
 import Usuario from "./pages/Usuario";
 import RegistrarUsuario from "./pages/RegistrarUsuario";
+import Perfil from "./pages/Perfil";
 import Paciente from "./pages/Paciente";
 import RegistrarPaciente from "./pages/RegistrarPaciente";
 import EditarPaciente from "./pages/EditarPaciente";
@@ -28,6 +29,14 @@ function App() {
           <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <Perfil />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/usuarios"
             element={
