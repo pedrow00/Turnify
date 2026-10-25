@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
+    "db:setup": "node scripts/db-setup.js",
+    "db:reset": "node scripts/db-setup.js --reset --yes",
+    "user:create": "node scripts/create-user.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
