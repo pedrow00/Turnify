@@ -43,8 +43,10 @@ Detalles de implementación:
 
 `db:setup` crea cuatro usuarios demo (ver el README principal). El usuario
 `profesional@turnify.test` queda vinculado al primer profesional del seed, que
-es de donde el listado de Usuarios toma la especialidad y la matrícula. Para
-una base que ya existe, o para recuperar el acceso:
+es de donde el listado de Usuarios toma la especialidad, la matrícula y el
+CUIL. Los usuarios sin profesional vinculado muestran nombre y nombre de
+usuario deducidos del email, y un DNI/CUIL estimado que la interfaz marca como
+tal. Para una base que ya existe, o para recuperar el acceso:
 
 ```bash
 npm run user:create -- --email admin@turnify.test --password "TuPassword123" --rol admin

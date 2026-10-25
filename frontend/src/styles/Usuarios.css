@@ -206,7 +206,7 @@
 
 .usuarios-tabla {
   width: 100%;
-  min-width: 56rem;
+  min-width: 76rem;
   border-collapse: collapse;
 }
 
@@ -312,6 +312,30 @@
 
 .usuarios-sin-dato {
   color: var(--secondary);
+}
+
+.usuarios-usuario {
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.usuarios-celda-documento {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.usuarios-celda-documento > span {
+  align-self: flex-start;
+}
+
+/* Dato deducido o estimado: se marca para no confundirlo con uno real. */
+.usuarios-dato-derivado {
+  border-bottom: 1px dashed var(--secondary);
+  cursor: help;
 }
 
 /* Estado */

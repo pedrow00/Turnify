@@ -16,6 +16,7 @@ const selectUsuariosBase = `
   SELECT u.id, u.email, u.rol_id, r.nombre AS rol_nombre,
          u.profesional_id, u.activo, u.fecha_creacion, u.fecha_baja,
          p.nombre AS profesional_nombre, p.apellido AS profesional_apellido,
+         p.cuil AS profesional_cuil,
          COALESCE(pe.nombre, e.nombre) AS especialidad_nombre,
          COALESCE(pe.matricula, p.matricula) AS matricula
     FROM usuarios u
@@ -41,6 +42,66 @@ const mapUniqueError = (error) => {
   return validationError('Ya existe un usuario con ese email');
 };
 
+const capitalizar = (texto) =>
+  texto ? texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase() : '';
+
+const formatearDni = (dni) =>
+  String(dni).replace(/(\d{2})(\d{3})(\d{3})/, '$1.$2.$3');
+
+/**
+ * CUIL con el digito verificador que usa AFIP: prefijo (2) + DNI (8) + DV.
+ */
+const calcularCuil = (dni, prefijo = '20') => {
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const base = `${prefijo}${dni}`;
+  const suma = base
+    .split('')
+    .reduce((total, digito, indice) => total + Number(digito) * pesos[indice], 0);
+  const resto = suma % 11;
+  const verificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto;
+
+  return `${prefijo}-${dni}-${verificador}`;
+};
+
+/**
+ * Identidad para el listado:
+ * - con profesional vinculado se usan nombre, apellido y CUIL reales;
+ * - sin profesional se deducen nombre y apellido del email y se estima un
+ *   DNI/CUIL estable a partir del id (solo para la demo).
+ */
+const construirIdentidad = (usuario) => {
+  const local = String(usuario.email || '').split('@')[0] || '';
+  const partes = local
+    .split(/[._+-]+/)
+    .map((parte) => parte.replace(/\d+/g, ''))
+    .filter(Boolean);
+
+  const nombre = usuario.profesional_nombre || capitalizar(partes[0]);
+  const apellido =
+    usuario.profesional_apellido || partes.slice(1).map(capitalizar).join(' ');
+  const nombreCompleto = [nombre, apellido].filter(Boolean).join(' ') || '—';
+
+  const cuilProfesional = String(usuario.profesional_cuil || '').replace(/\D/g, '');
+  const identidadDerivada = cuilProfesional.length !== 11;
+
+  const dni = identidadDerivada
+    ? String(20000000 + ((Number(usuario.id) * 7919) % 25000000))
+    : cuilProfesional.slice(2, 10);
+
+  const cuil = identidadDerivada
+    ? calcularCuil(dni)
+    : `${cuilProfesional.slice(0, 2)}-${dni}-${cuilProfesional.slice(10)}`;
+
+  return {
+    nombre_completo: nombreCompleto,
+    nombre_usuario: local.toLowerCase(),
+    dni: formatearDni(dni),
+    cuil,
+    nombre_derivado: !usuario.profesional_id,
+    identidad_derivada: identidadDerivada,
+  };
+};
+
 const buscarPorEmail = async (email) => {
   const result = await pool.query(
     `SELECT u.id, u.email, u.password_hash, u.rol_id, u.activo, r.nombre AS rol_nombre
@@ -56,12 +117,14 @@ const buscarPorId = async (id) => {
   if (!Number.isInteger(Number(id))) return null;
 
   const result = await pool.query(`${selectUsuariosBase} WHERE u.id = $1`, [id]);
-  return result.rows[0] ?? null;
+  if (result.rows.length === 0) return null;
+
+  return { ...result.rows[0], ...construirIdentidad(result.rows[0]) };
 };
 
 const listarUsuarios = async () => {
   const result = await pool.query(`${selectUsuariosBase} ORDER BY u.email`);
-  return result.rows;
+  return result.rows.map((row) => ({ ...row, ...construirIdentidad(row) }));
 };
 
 const contarAdminsActivos = async () => {

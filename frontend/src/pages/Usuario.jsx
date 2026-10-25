@@ -124,14 +124,19 @@ export default function Usuario() {
   }, [usuarioRol, usuarioPassword, usuarioEstado]);
 
   const termino = busqueda.trim().toLowerCase();
+  const terminoDigitos = termino.replace(/\D/g, "");
   const hayFiltros =
     termino !== "" || rolFiltro !== "" || estadoFiltro !== "todos";
 
   const usuariosFiltrados = usuarios.filter((usuario) => {
-    // El texto libre solo busca en datos variables: email y datos del
-    // profesional. Rol y estado son catalogos y van por desplegable.
+    // El texto libre solo busca en datos variables: identidad, email y datos
+    // del profesional. Rol y estado son catalogos y van por desplegable.
     const valores = [
       usuario.email,
+      usuario.nombre_completo,
+      usuario.nombre_usuario,
+      usuario.dni,
+      usuario.cuil,
       usuario.profesional_nombre,
       usuario.profesional_apellido,
       usuario.matricula,
@@ -139,7 +144,14 @@ export default function Usuario() {
       .filter(Boolean)
       .map((valor) => String(valor).toLowerCase());
 
-    const coincideTexto = !termino || valores.some((valor) => valor.includes(termino));
+    const coincideTexto =
+      !termino ||
+      valores.some((valor) => valor.includes(termino)) ||
+      (terminoDigitos.length >= 3 &&
+        [usuario.dni, usuario.cuil].some((valor) =>
+          String(valor).replace(/\D/g, "").includes(terminoDigitos)
+        ));
+
     const coincideRol = !rolFiltro || Number(usuario.rol_id) === Number(rolFiltro);
     const coincideEstado =
       estadoFiltro === "todos" ||
@@ -281,10 +293,10 @@ export default function Usuario() {
           <div className="usuarios-search">
             <input
               type="text"
-              placeholder="Buscar por email, profesional o matrícula..."
+              placeholder="Buscar por nombre, usuario, email o documento..."
               value={busqueda}
               onChange={(event) => setBusqueda(event.target.value)}
-              aria-label="Buscar usuarios por email, profesional o matrícula"
+              aria-label="Buscar usuarios por nombre, usuario, email o documento"
             />
           </div>
 
@@ -332,9 +344,12 @@ export default function Usuario() {
           <table className="usuarios-tabla">
             <thead>
               <tr>
+                <th scope="col">Nombre y apellido</th>
+                <th scope="col">Usuario</th>
                 <th scope="col">Email</th>
                 <th scope="col">Rol</th>
                 <th scope="col">Especialidad / MP</th>
+                <th scope="col">DNI / CUIL</th>
                 <th scope="col">Estado</th>
                 <th scope="col">Creado</th>
                 <th scope="col" className="usuarios-col-acciones">
@@ -351,6 +366,19 @@ export default function Usuario() {
                     key={usuario.id}
                     className={usuario.activo ? "" : "usuarios-fila-inactiva"}
                   >
+                    <td>
+                      <span
+                        className={
+                          usuario.nombre_derivado ? "usuarios-dato-derivado" : ""
+                        }
+                        title={
+                          usuario.nombre_derivado ? "Deducido del email" : undefined
+                        }
+                      >
+                        {usuario.nombre_completo}
+                      </span>
+                    </td>
+                    <td className="usuarios-usuario">@{usuario.nombre_usuario}</td>
                     <td className="usuarios-email">{usuario.email}</td>
                     <td>
                       <span className={`rol-badge rol-${usuario.rol_nombre}`}>
@@ -372,6 +400,35 @@ export default function Usuario() {
                       ) : (
                         <span className="usuarios-sin-dato">—</span>
                       )}
+                    </td>
+                    <td>
+                      <div
+                        className="usuarios-celda-documento"
+                        title={
+                          usuario.identidad_derivada
+                            ? "DNI/CUIL estimado para la demo"
+                            : undefined
+                        }
+                      >
+                        <span
+                          className={
+                            usuario.identidad_derivada
+                              ? "usuarios-dato-derivado"
+                              : ""
+                          }
+                        >
+                          DNI {usuario.dni}
+                        </span>
+                        <span
+                          className={
+                            usuario.identidad_derivada
+                              ? "usuarios-dato-derivado"
+                              : ""
+                          }
+                        >
+                          CUIL {usuario.cuil}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <span
