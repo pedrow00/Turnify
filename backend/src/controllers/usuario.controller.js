@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const { buscarPorEmail, crearUsuario } = require('../services/usuario.service');
+const usuarioService = require('../services/usuario.service');
 const { logger } = require('../utils/logger');
 
 const regenerateSession = (req) =>
@@ -19,7 +19,7 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Email y contraseña requeridos' });
     }
 
-    const usuario = await buscarPorEmail(email);
+    const usuario = await usuarioService.buscarPorEmail(email);
     if (!usuario) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -68,7 +68,16 @@ const me = (req, res) => {
   res.json(req.session.user);
 };
 
-const register = async (req, res) => {
+const listar = async (req, res) => {
+  try {
+    res.json(await usuarioService.listarUsuarios());
+  } catch (error) {
+    logger.error('Error al listar usuarios', { message: error.message });
+    res.status(500).json({ error: 'No se pudieron obtener los usuarios' });
+  }
+};
+
+const crear = async (req, res) => {
   try {
     const { email, password, rol_id } = req.body;
     const emailNormalizado = String(email || '').trim().toLowerCase();
@@ -82,7 +91,7 @@ const register = async (req, res) => {
         .json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
-    const usuario = await crearUsuario({
+    const usuario = await usuarioService.crearUsuario({
       email: emailNormalizado,
       password,
       rol_id,
@@ -95,8 +104,49 @@ const register = async (req, res) => {
       logger.error('Error al crear usuario', { message: error.message });
       return res.status(500).json({ error: 'No se pudo crear el usuario' });
     }
-    res.status(400).json({ error: error.message });
+    res.status(error.status || 400).json({ error: error.message });
   }
 };
 
-module.exports = { login, logout, me, register };
+const actualizarRol = async (req, res) => {
+  try {
+    const usuario = await usuarioService.actualizarRol({
+      id: req.params.id,
+      rol_id: req.body.rol_id,
+      usuarioActualId: req.session.user.id,
+    });
+    res.json(usuario);
+  } catch (error) {
+    if (error.code) {
+      logger.error('Error al actualizar rol', { message: error.message });
+      return res.status(500).json({ error: 'No se pudo actualizar el rol' });
+    }
+    res.status(error.status || 400).json({ error: error.message });
+  }
+};
+
+const actualizarPassword = async (req, res) => {
+  try {
+    await usuarioService.actualizarPassword({
+      id: req.params.id,
+      password: req.body.password,
+    });
+    res.json({ message: 'Contraseña actualizada' });
+  } catch (error) {
+    if (error.code) {
+      logger.error('Error al actualizar contraseña', { message: error.message });
+      return res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
+    }
+    res.status(error.status || 400).json({ error: error.message });
+  }
+};
+
+module.exports = {
+  login,
+  logout,
+  me,
+  listar,
+  crear,
+  actualizarRol,
+  actualizarPassword,
+};

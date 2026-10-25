@@ -4,7 +4,8 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Inicio from "./pages/Inicio";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Usuario from "./pages/Usuario";
+import RegistrarUsuario from "./pages/RegistrarUsuario";
 import Paciente from "./pages/Paciente";
 import RegistrarPaciente from "./pages/RegistrarPaciente";
 import EditarPaciente from "./pages/EditarPaciente";
@@ -28,10 +29,18 @@ function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
           <Route
-            path="/register"
+            path="/usuarios"
             element={
               <ProtectedRoute permission="usuarioAdmin">
-                <Register />
+                <Usuario />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios/nuevo"
+            element={
+              <ProtectedRoute permission="usuarioAdmin">
+                <RegistrarUsuario />
               </ProtectedRoute>
             }
           />

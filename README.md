@@ -12,7 +12,7 @@ distintos según el rol de quien inicia sesión.
 
 |       Rol      |                 Qué puede hacer                 |
 |       ---      |                      ---                        |
-| `admin`        | Todo, incluido crear usuarios                   |
+| `admin`        | Todo, incluida la gestión de usuarios           |
 | `socio`        | Pacientes, profesionales, consultorios y turnos |
 | `secretaria`   | Pacientes, profesionales, consultorios y turnos |
 | `profesional`  | Ver pacientes y gestionar turnos                |
@@ -123,8 +123,9 @@ Más detalle sobre la base en [`backend/db/README.md`](backend/db/README.md).
 
 ## Decisiones de seguridad
 
-- El alta de usuarios **no es pública**: solo un `admin` puede crear cuentas.
-  La primera cuenta se crea con `npm run user:create`.
+- La gestión de usuarios **no es pública**: solo un `admin` puede listar,
+  crear, cambiar el rol y restablecer contraseñas. La primera cuenta se crea
+  con `npm run user:create`.
 - El login tiene límite de 10 intentos por IP cada 15 minutos.
 - La sesión se regenera al iniciar sesión, para evitar fijación de sesión.
 - Los errores de base de datos se registran en el servidor y no se devuelven

@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3q5tAsMl2vZZGlOIALcNG9defFAaKmyLhdEhWx4qbPkBKhIHmyaSMUxtf7AcF2o
+\restrict atB9Wnbw3IGd364gVsp8kRpH4H9ckIuvNVmeP5fhk8J5rLtGPUBinnFeM7qd4aa
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -496,7 +496,8 @@ CREATE TABLE public.usuarios (
     id integer NOT NULL,
     email character varying(150),
     password_hash text,
-    rol_id integer
+    rol_id integer,
+    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -894,5 +895,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3q5tAsMl2vZZGlOIALcNG9defFAaKmyLhdEhWx4qbPkBKhIHmyaSMUxtf7AcF2o
+\unrestrict atB9Wnbw3IGd364gVsp8kRpH4H9ckIuvNVmeP5fhk8J5rLtGPUBinnFeM7qd4aa
 

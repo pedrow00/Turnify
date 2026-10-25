@@ -9,7 +9,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
+  const isAuthPage = location.pathname === "/login";
 
   // Cierra el menu al navegar.
   useEffect(() => {

@@ -58,6 +58,8 @@ const profesionalRoutes = require('./routes/profesional.routes');
 const consultorioRoutes = require('./routes/consultorio.routes');
 const turnoRoutes = require('./routes/turnos.routes');
 const especialidadRoutes = require('./routes/especialidades.routes');
+const usuarioRoutes = require('./routes/usuarios.routes');
+const rolRoutes = require('./routes/roles.routes');
 const authRoutes = require('./routes/auth.routes');
 
 app.use('/pacientes', pacienteRoutes);
@@ -65,6 +67,8 @@ app.use('/profesionales', profesionalRoutes);
 app.use('/consultorios', consultorioRoutes);
 app.use('/turnos', turnoRoutes);
 app.use('/especialidades', especialidadRoutes);
+app.use('/usuarios', usuarioRoutes);
+app.use('/roles', rolRoutes);
 app.use('/auth', authRoutes);
 
 module.exports = app;

@@ -40,10 +40,10 @@ export const NAV_ITEMS = [
     isActive: (path) => path.startsWith("/consultorio"),
   },
   {
-    to: "/register",
+    to: "/usuarios",
     label: "Usuarios",
     permission: "usuarioAdmin",
-    isActive: (path) => path === "/register",
+    isActive: (path) => path.startsWith("/usuarios"),
   },
 ];
 
