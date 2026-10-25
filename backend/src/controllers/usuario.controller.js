@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { buscarPorEmail, crearUsuario } = require('../services/usuario.service');
+const { logger } = require('../utils/logger');
 
 const login = async (req, res) => {
   try {
@@ -9,13 +10,11 @@ const login = async (req, res) => {
     }
 
     const usuario = await buscarPorEmail(email);
-    console.log("Usuario encontrado:", usuario);
     if (!usuario) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const valido = await bcrypt.compare(password, usuario.password_hash);
-    console.log("Contraseña válida:", valido);
     if (!valido) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -32,8 +31,9 @@ const login = async (req, res) => {
       rol: req.session.user.rol,
     });
   } catch (error) {
-    console.error("Error en login:", error);
-    res.status(500).json({ error: error.message });
+    // No se loguea el email ni el hash: solo el motivo tecnico.
+    logger.error('Error en login', { message: error.message });
+    res.status(500).json({ error: 'No se pudo iniciar sesión' });
   }
 };
 

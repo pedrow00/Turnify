@@ -8,6 +8,3 @@ router.get('/me', me);
 router.post('/register', register);
 
 module.exports = router;
-
-//secretaria: secretaria@test.com - password: 123456
-//profesional: pedrito@correo.com - password: 123456
