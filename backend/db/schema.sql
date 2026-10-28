@@ -5,7 +5,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eyFxhQRa8IfkT76X3tbNMhj3K7aOK3oA8zbzipLSGLdrjtxKp5KOXi0VTD6INvn
+\restrict s7HCZCXq1yCqyWXWJhUTevpUJeO3m4ETRECZHSyJRazEgN3g0X2zinmgQBAHnfL
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -504,7 +504,6 @@ CREATE TABLE public.usuarios (
     nombre character varying(100),
     apellido character varying(100),
     nombre_usuario character varying(50),
-    dni character varying(8),
     cuil character varying(11)
 );
 
@@ -819,13 +818,6 @@ CREATE UNIQUE INDEX usuarios_cuil_unique ON public.usuarios USING btree (cuil);
 
 
 --
--- Name: usuarios_dni_unique; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX usuarios_dni_unique ON public.usuarios USING btree (dni);
-
-
---
 -- Name: usuarios_nombre_usuario_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -939,5 +931,5 @@ ALTER TABLE ONLY public.usuarios
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eyFxhQRa8IfkT76X3tbNMhj3K7aOK3oA8zbzipLSGLdrjtxKp5KOXi0VTD6INvn
+\unrestrict s7HCZCXq1yCqyWXWJhUTevpUJeO3m4ETRECZHSyJRazEgN3g0X2zinmgQBAHnfL
 

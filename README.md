@@ -63,16 +63,16 @@ El frontend apunta a `http://localhost:3000` mediante
 
 `npm run db:setup` crea estos usuarios (contraseña `Turnify2026!`):
 
-| Email | Usuario | DNI | Rol |
+| Email | Usuario | CUIL | Rol |
 |---|---|---|---|
-| `admin@turnify.test` | `ana.gomez` | 30.111.222 | admin |
-| `socio@turnify.test` | `bruno.fernandez` | 28.444.555 | socio |
-| `secretaria@turnify.test` | `carla.lopez` | 32.666.777 | secretaria |
-| `profesional@turnify.test` | `juan.puguita` | 34.567.890 | profesional |
+| `admin@turnify.test` | `ana.gomez` | 20-30111222-0 | admin |
+| `socio@turnify.test` | `bruno.fernandez` | 20-28444555-5 | socio |
+| `secretaria@turnify.test` | `carla.lopez` | 20-32666777-4 | secretaria |
+| `profesional@turnify.test` | `juan.puguita` | 20-34567890-1 | profesional |
 
-Se puede iniciar sesión con el email, el nombre de usuario, el DNI o el CUIL.
-El CUIL de cada usuario demo se calcula a partir del DNI con el dígito
-verificador de AFIP.
+Se puede iniciar sesión con el email, el nombre de usuario o el CUIL. El CUIL
+se carga explícitamente: no se calcula a partir del DNI ni se deduce de otro
+dato.
 
 Los datos de pacientes, profesionales y turnos del seed son inventados. Las
 fechas de los turnos se calculan al momento de cargar el seed, así que la
@@ -87,7 +87,7 @@ demo nunca queda con turnos vencidos.
 | `npm run dev` | API con recarga automática (nodemon) |
 | `npm run db:setup` | Crea la base si no existe, aplica `schema.sql` + `seed.sql` y crea los usuarios demo. Si la base ya tiene tablas, no hace nada |
 | `npm run db:reset` | Borra el schema `public` y vuelve a crear todo |
-| `npm run user:create -- --email ... --password ... --rol ...` | Crea un usuario o le cambia la contraseña y el rol. Sirve para recuperar el acceso si no queda ningún admin |
+| `npm run user:create -- --email ... --password ... --rol ... [--cuil ...]` | Crea un usuario o le cambia la contraseña y el rol. Sirve para recuperar el acceso si no queda ningún admin. El CUIL es opcional |
 
 ### Frontend
 
@@ -113,7 +113,7 @@ backend/
     controllers/      entrada HTTP
     routes/           rutas y permisos por rol
     services/         consultas SQL y reglas de negocio
-    utils/            logger, autenticación e identidad (DNI/CUIL)
+    utils/            logger, autenticación e identidad (CUIL)
 frontend/
   src/
     pages/            pantallas
@@ -132,7 +132,7 @@ Más detalle sobre la base en [`backend/db/README.md`](backend/db/README.md).
   cuenta se crea con `npm run user:create`.
 - Cada usuario puede entrar a **Mi perfil** para ver sus datos (solo lectura)
   y cambiar su propia contraseña pidiendo la actual.
-- El login acepta email, nombre de usuario, DNI o CUIL, y tiene límite de 10
+- El login acepta email, nombre de usuario o CUIL, y tiene límite de 10
   intentos por IP cada 15 minutos.
 - La sesión se regenera al iniciar sesión, para evitar fijación de sesión.
 - La sesión se valida contra la base en cada request: una baja o un cambio de

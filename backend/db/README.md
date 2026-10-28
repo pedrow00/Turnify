@@ -42,25 +42,33 @@ Detalles de implementación:
 ## Usuarios
 
 `db:setup` crea cuatro usuarios demo (ver el README principal) con nombre,
-apellido, nombre de usuario, DNI y CUIL. El usuario
+apellido, nombre de usuario y CUIL. El usuario
 `profesional@turnify.test` queda vinculado al primer profesional del seed, que
-es de donde el listado de Usuarios toma la especialidad, la matrícula y el
-CUIL.
+es de donde el listado de Usuarios toma la especialidad y la matrícula.
 
-La identidad (`nombre`, `apellido`, `nombre_usuario`, `dni`, `cuil`) se guarda
-en `usuarios`. `nombre_usuario`, `dni` y `cuil` tienen índices únicos porque
-sirven para iniciar sesión. El CUIL se puede cargar directamente o calcularse
-desde el DNI con el dígito verificador de AFIP: el formulario permite cargar
-uno y completa el otro.
+La identidad (`nombre`, `apellido`, `nombre_usuario`, `cuil`) se guarda en
+`usuarios`. `nombre_usuario` y `cuil` tienen índices únicos porque sirven para
+iniciar sesión. El CUIL se ingresa explícitamente: no se calcula a partir del
+DNI ni se deduce de otro dato.
 
 Los usuarios que ya existían antes de estos campos (o los creados con
-`user:create`) pueden iniciar sesión con su email. Mientras no tengan datos
-cargados, el listado deduce nombre y usuario del email y muestra un DNI/CUIL
-estimado marcado como tal. Un admin puede completarlos desde **Usuarios →
-Editar datos**.
+`user:create` sin `--cuil`) pueden iniciar sesión con su email. Mientras no
+tengan datos cargados, el listado deduce nombre y usuario del email y muestra
+el CUIL vacío. Un admin puede completarlos desde **Usuarios → Editar datos**.
+
+Si la base ya existía con la columna `usuarios.dni`, se puede quitar sin tocar
+los CUIL cargados:
+
+```sql
+ALTER TABLE usuarios DROP COLUMN IF EXISTS dni;
+```
 
 Para una base que ya existe, o para recuperar el acceso:
 
 ```bash
 npm run user:create -- --email admin@turnify.test --password "TuPassword123" --rol admin
 ```
+
+El script acepta `--cuil` de forma opcional. Si no se pasa, la cuenta se puede
+usar con email o nombre de usuario y el CUIL se completa después desde la
+interfaz.

@@ -49,13 +49,13 @@ export default function Login() {
           {error ? <div className="submit-error">{error}</div> : null}
 
           <div className="form-group">
-            <label htmlFor="identificador">Usuario, email o DNI/CUIL</label>
+            <label htmlFor="identificador">Usuario, email o CUIL</label>
             <input
               type="text"
               id="identificador"
               value={identificador}
               onChange={(e) => setIdentificador(e.target.value)}
-              placeholder="ana.gomez, tu@email.com o 30.111.222"
+              placeholder="ana.gomez, tu@email.com o 20-30111222-3"
               autoComplete="username"
               required
             />

@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { apiGet, apiPut } from "../utils/api";
-import { documentoDesde } from "../utils/documento";
-import CamposDocumento from "../components/CamposDocumento";
+import { soloDigitos } from "../utils/documento";
+import CampoCuil from "../components/CampoCuil";
 import "../styles/Usuarios.css";
 
 const ROLE_LABELS = {
@@ -245,8 +245,7 @@ export default function Usuario() {
   const [editApellido, setEditApellido] = useState("");
   const [editUsuario, setEditUsuario] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editTipoDocumento, setEditTipoDocumento] = useState("dni");
-  const [editDocumento, setEditDocumento] = useState("");
+  const [editCuil, setEditCuil] = useState("");
 
   const [usuarioRol, setUsuarioRol] = useState(null);
   const [nuevoRol, setNuevoRol] = useState("");
@@ -312,7 +311,6 @@ export default function Usuario() {
       usuario.email,
       usuario.nombre_completo,
       usuario.nombre_usuario,
-      usuario.dni,
       usuario.cuil,
       usuario.profesional_nombre,
       usuario.profesional_apellido,
@@ -325,9 +323,7 @@ export default function Usuario() {
       !termino ||
       valores.some((valor) => valor.includes(termino)) ||
       (terminoDigitos.length >= 3 &&
-        [usuario.dni, usuario.cuil].some((valor) =>
-          String(valor).replace(/\D/g, "").includes(terminoDigitos)
-        ));
+        String(usuario.cuil).replace(/\D/g, "").includes(terminoDigitos));
 
     const coincideRol = !rolFiltro || Number(usuario.rol_id) === Number(rolFiltro);
     const coincideEstado =
@@ -349,9 +345,7 @@ export default function Usuario() {
     setEditApellido(usuario.apellido || "");
     setEditUsuario(usuario.nombre_usuario || "");
     setEditEmail(usuario.email || "");
-    setEditTipoDocumento("dni");
-    // Si la identidad es estimada no se precarga para no guardar datos falsos.
-    setEditDocumento(usuario.identidad_derivada ? "" : usuario.dni || "");
+    setEditCuil(usuario.cuil || "");
     setModalError("");
     setMensaje("");
   };
@@ -387,13 +381,9 @@ export default function Usuario() {
     event.preventDefault();
     setModalError("");
 
-    const { dni, cuil } = documentoDesde(editTipoDocumento, editDocumento);
+    const cuil = soloDigitos(editCuil);
 
-    if (editTipoDocumento === "dni" && (dni.length < 7 || dni.length > 8)) {
-      setModalError("El DNI debe tener 7 u 8 dígitos");
-      return;
-    }
-    if (editTipoDocumento === "cuil" && cuil.length !== 11) {
+    if (cuil.length !== 11) {
       setModalError("El CUIL debe tener 11 dígitos");
       return;
     }
@@ -406,7 +396,6 @@ export default function Usuario() {
         nombre: editNombre.trim(),
         apellido: editApellido.trim(),
         nombre_usuario: editUsuario.trim(),
-        dni,
         cuil,
       });
 
@@ -525,10 +514,10 @@ export default function Usuario() {
           <div className="usuarios-search">
             <input
               type="text"
-              placeholder="Buscar por nombre, usuario, email o documento..."
+              placeholder="Buscar por nombre, usuario, email o CUIL..."
               value={busqueda}
               onChange={(event) => setBusqueda(event.target.value)}
-              aria-label="Buscar usuarios por nombre, usuario, email o documento"
+              aria-label="Buscar usuarios por nombre, usuario, email o CUIL"
             />
           </div>
 
@@ -581,7 +570,7 @@ export default function Usuario() {
                 <th scope="col">Email</th>
                 <th scope="col">Rol</th>
                 <th scope="col">Especialidad / MP</th>
-                <th scope="col">DNI / CUIL</th>
+                <th scope="col">CUIL</th>
                 <th scope="col">Estado</th>
                 <th scope="col">Creado</th>
                 <th scope="col" className="usuarios-col-acciones">
@@ -649,32 +638,12 @@ export default function Usuario() {
                       )}
                     </td>
                     <td>
-                      <div
-                        className="usuarios-celda-documento"
-                        title={
-                          usuario.identidad_derivada
-                            ? "DNI/CUIL estimado para la demo"
-                            : undefined
-                        }
-                      >
-                        <span
-                          className={
-                            usuario.identidad_derivada
-                              ? "usuarios-dato-derivado"
-                              : ""
-                          }
-                        >
-                          DNI {usuario.dni}
-                        </span>
-                        <span
-                          className={
-                            usuario.identidad_derivada
-                              ? "usuarios-dato-derivado"
-                              : ""
-                          }
-                        >
-                          CUIL {usuario.cuil}
-                        </span>
+                      <div className="usuarios-celda-documento">
+                        {usuario.cuil ? (
+                          <span>{usuario.cuil}</span>
+                        ) : (
+                          <span className="usuarios-sin-dato">Sin dato</span>
+                        )}
                       </div>
                     </td>
                     <td>
@@ -779,12 +748,10 @@ export default function Usuario() {
               />
             </div>
 
-            <CamposDocumento
-              idPrefix="usuario-editar"
-              tipo={editTipoDocumento}
-              onTipoChange={setEditTipoDocumento}
-              numero={editDocumento}
-              onNumeroChange={setEditDocumento}
+            <CampoCuil
+              id="usuario-editar-cuil"
+              value={editCuil}
+              onChange={setEditCuil}
             />
 
             <div className="usuarios-modal-actions">

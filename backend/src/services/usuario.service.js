@@ -2,10 +2,7 @@ const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const {
   normalizarDigitos,
-  formatearDni,
   formatearCuil,
-  calcularCuil,
-  dniDesdeCuil,
   nombreDesdeEmail,
 } = require('../utils/identidad');
 
@@ -23,9 +20,8 @@ const validationError = (message, status = 400) => {
 const selectUsuariosBase = `
   SELECT u.id, u.email, u.rol_id, r.nombre AS rol_nombre,
          u.profesional_id, u.activo, u.fecha_creacion, u.fecha_baja,
-         u.nombre, u.apellido, u.nombre_usuario, u.dni, u.cuil,
+         u.nombre, u.apellido, u.nombre_usuario, u.cuil,
          p.nombre AS profesional_nombre, p.apellido AS profesional_apellido,
-         p.cuil AS profesional_cuil,
          COALESCE(pe.nombre, e.nombre) AS especialidad_nombre,
          COALESCE(pe.matricula, p.matricula) AS matricula
     FROM usuarios u
@@ -50,10 +46,8 @@ const mapUniqueError = (error) => {
       return validationError('Ese profesional ya tiene un usuario asignado');
     case 'usuarios_nombre_usuario_unique':
       return validationError('Ese nombre de usuario ya está en uso');
-    case 'usuarios_dni_unique':
-      return validationError('Ya existe un usuario con ese DNI');
     case 'usuarios_cuil_unique':
-      return validationError('Ya existe un usuario con ese DNI o CUIL');
+      return validationError('Ya existe un usuario con ese CUIL');
     default:
       return validationError('Ya existe un usuario con ese email');
   }
@@ -94,40 +88,26 @@ const normalizarNombreUsuario = (valor) => {
 };
 
 /**
- * El formulario permite cargar DNI o CUIL; el que falta se completa solo.
- * Se guardan los digitos, sin puntos ni guiones.
+ * El CUIL es el unico documento del dominio de usuarios. Se guarda como
+ * digitos, sin puntos ni guiones, y no se calcula a partir de otro dato.
  */
-const normalizarDocumento = ({ dni, cuil }) => {
-  const dniDigitos = normalizarDigitos(dni);
-  const cuilDigitos = normalizarDigitos(cuil);
+const normalizarCuil = (cuil) => {
+  const digitos = normalizarDigitos(cuil);
 
-  if (!dniDigitos && !cuilDigitos) {
-    throw validationError('Ingresá DNI o CUIL');
+  if (!digitos) {
+    throw validationError('Ingresá el CUIL');
   }
-  if (dniDigitos && (dniDigitos.length < 7 || dniDigitos.length > 8)) {
-    throw validationError('El DNI debe tener 7 u 8 dígitos');
-  }
-  if (cuilDigitos && cuilDigitos.length !== 11) {
+  if (digitos.length !== 11) {
     throw validationError('El CUIL debe tener 11 dígitos');
   }
-  if (
-    dniDigitos &&
-    cuilDigitos &&
-    cuilDigitos.slice(2, 10) !== dniDigitos.padStart(8, '0')
-  ) {
-    throw validationError('El CUIL no coincide con el DNI');
-  }
 
-  const dniFinal = dniDigitos || dniDesdeCuil(cuilDigitos);
-  const cuilFinal = cuilDigitos || normalizarDigitos(calcularCuil(dniFinal));
-
-  return { dni: dniFinal, cuil: cuilFinal };
+  return digitos;
 };
 
 /**
  * Identidad para el listado. Usa los datos guardados; si faltan, los del
  * profesional vinculado y, como ultimo recurso, los deducidos del email.
- * El DNI/CUIL estimado se marca para no confundirlo con uno real.
+ * El CUIL no se estima: si no esta cargado, se muestra vacio.
  */
 const construirIdentidad = (usuario) => {
   const derivado = nombreDesdeEmail(usuario.email);
@@ -136,23 +116,14 @@ const construirIdentidad = (usuario) => {
   const apellido =
     usuario.apellido || usuario.profesional_apellido || derivado.apellido;
 
-  const cuilReal = usuario.cuil || usuario.profesional_cuil;
-  const dniReal = usuario.dni || (cuilReal ? dniDesdeCuil(cuilReal) : '');
-  const identidadDerivada = !dniReal && !cuilReal;
-
-  const dni = dniReal || String(20000000 + ((Number(usuario.id) * 7919) % 25000000));
-  const cuil = cuilReal ? formatearCuil(cuilReal) : calcularCuil(dni);
-
   return {
     nombre_completo: [nombre, apellido].filter(Boolean).join(' ') || '—',
     nombre_usuario:
       usuario.nombre_usuario ||
       String(usuario.email || '').split('@')[0].toLowerCase(),
-    dni: formatearDni(dni),
-    cuil,
+    cuil: usuario.cuil ? formatearCuil(usuario.cuil) : '',
     nombre_derivado: !usuario.nombre && !usuario.profesional_nombre,
     usuario_derivado: !usuario.nombre_usuario,
-    identidad_derivada: identidadDerivada,
   };
 };
 
@@ -165,17 +136,11 @@ const buscarPorIdentificador = async (identificador) => {
   let condiciones =
     'lower(u.email) = lower($1) OR lower(u.nombre_usuario) = lower($1)';
 
-  // Un email puede tener digitos; solo se busca por documento si el texto no
+  // Un email puede tener digitos; solo se busca por CUIL si el texto no
   // parece un email, para no mezclar identidades.
-  if (
-    !texto.includes('@') &&
-    (digitos.length === 11 || (digitos.length >= 7 && digitos.length <= 8))
-  ) {
+  if (!texto.includes('@') && digitos.length === 11) {
     params.push(digitos);
-    condiciones +=
-      ` OR (u.dni IS NOT NULL AND length($2) BETWEEN 7 AND 8
-            AND lpad(u.dni, 8, '0') = lpad($2, 8, '0'))` +
-      ' OR (length($2) = 11 AND u.cuil = $2)';
+    condiciones += ' OR u.cuil = $2';
   }
 
   const result = await pool.query(
@@ -256,7 +221,6 @@ const crearUsuario = async ({
   nombre,
   apellido,
   nombre_usuario,
-  dni,
   cuil,
 }) => {
   const rol = await obtenerRol(rol_id);
@@ -265,7 +229,7 @@ const crearUsuario = async ({
     nombre: normalizarNombre(nombre, 'el nombre'),
     apellido: normalizarNombre(apellido, 'el apellido'),
     nombre_usuario: normalizarNombreUsuario(nombre_usuario),
-    ...normalizarDocumento({ dni, cuil }),
+    cuil: normalizarCuil(cuil),
   };
   const password_hash = await bcrypt.hash(password, 10);
 
@@ -273,8 +237,8 @@ const crearUsuario = async ({
     const result = await pool.query(
       `INSERT INTO usuarios
         (email, password_hash, rol_id, profesional_id,
-         nombre, apellido, nombre_usuario, dni, cuil)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         nombre, apellido, nombre_usuario, cuil)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id`,
       [
         normalizarEmail(email),
@@ -284,7 +248,6 @@ const crearUsuario = async ({
         identidad.nombre,
         identidad.apellido,
         identidad.nombre_usuario,
-        identidad.dni,
         identidad.cuil,
       ]
     );
@@ -300,7 +263,6 @@ const actualizarDatos = async ({
   nombre,
   apellido,
   nombre_usuario,
-  dni,
   cuil,
 }) => {
   const usuario = await buscarPorId(id);
@@ -311,21 +273,20 @@ const actualizarDatos = async ({
     nombre: normalizarNombre(nombre, 'el nombre'),
     apellido: normalizarNombre(apellido, 'el apellido'),
     nombre_usuario: normalizarNombreUsuario(nombre_usuario),
-    ...normalizarDocumento({ dni, cuil }),
+    cuil: normalizarCuil(cuil),
   };
 
   try {
     await pool.query(
       `UPDATE usuarios
           SET email = $1, nombre = $2, apellido = $3,
-              nombre_usuario = $4, dni = $5, cuil = $6
-        WHERE id = $7`,
+              nombre_usuario = $4, cuil = $5
+        WHERE id = $6`,
       [
         datos.email,
         datos.nombre,
         datos.apellido,
         datos.nombre_usuario,
-        datos.dni,
         datos.cuil,
         id,
       ]

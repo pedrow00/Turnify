@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../utils/api";
-import { documentoDesde, soloDigitos } from "../utils/documento";
-import CamposDocumento from "../components/CamposDocumento";
+import { soloDigitos } from "../utils/documento";
+import CampoCuil from "../components/CampoCuil";
 import "../styles/Usuarios.css";
 
 const ROLE_LABELS = {
@@ -33,8 +33,7 @@ export default function RegistrarUsuario() {
   const [apellido, setApellido] = useState("");
   const [nombreUsuario, setNombreUsuario] = useState("");
   const [email, setEmail] = useState("");
-  const [tipoDocumento, setTipoDocumento] = useState("dni");
-  const [documento, setDocumento] = useState("");
+  const [cuil, setCuil] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
@@ -67,8 +66,8 @@ export default function RegistrarUsuario() {
   const rolSeleccionado = roles.find((rol) => String(rol.id) === rolId);
   const esProfesional = rolSeleccionado?.nombre === "profesional";
 
-  // Al elegir el profesional se completan nombre, apellido y documento desde
-  // su ficha; después se pueden corregir a mano.
+  // Al elegir el profesional se completan nombre y apellido desde su ficha;
+  // después se pueden corregir a mano. El CUIL se ingresa aparte.
   const seleccionarProfesional = (value) => {
     setProfesionalId(value);
 
@@ -79,23 +78,15 @@ export default function RegistrarUsuario() {
 
     setNombre(profesional.nombre || "");
     setApellido(profesional.apellido || "");
-    if (profesional.cuil) {
-      setTipoDocumento("cuil");
-      setDocumento(soloDigitos(profesional.cuil));
-    }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
-    const { dni, cuil } = documentoDesde(tipoDocumento, documento);
+    const cuilDigitos = soloDigitos(cuil);
 
-    if (tipoDocumento === "dni" && (dni.length < 7 || dni.length > 8)) {
-      setError("El DNI debe tener 7 u 8 dígitos");
-      return;
-    }
-    if (tipoDocumento === "cuil" && cuil.length !== 11) {
+    if (cuilDigitos.length !== 11) {
       setError("El CUIL debe tener 11 dígitos");
       return;
     }
@@ -123,8 +114,7 @@ export default function RegistrarUsuario() {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         nombre_usuario: nombreUsuario.trim(),
-        dni,
-        cuil,
+        cuil: cuilDigitos,
       });
       navigate("/usuarios", { state: { creado: true } });
     } catch (err) {
@@ -188,7 +178,7 @@ export default function RegistrarUsuario() {
               required
             />
             <span className="usuarios-hint">
-              Sirve para iniciar sesión, además del email o el DNI/CUIL.
+              Sirve para iniciar sesión, además del email o el CUIL.
             </span>
           </div>
 
@@ -205,12 +195,10 @@ export default function RegistrarUsuario() {
             />
           </div>
 
-          <CamposDocumento
-            idPrefix="usuario-nuevo"
-            tipo={tipoDocumento}
-            onTipoChange={setTipoDocumento}
-            numero={documento}
-            onNumeroChange={setDocumento}
+          <CampoCuil
+            id="usuario-nuevo-cuil"
+            value={cuil}
+            onChange={setCuil}
           />
 
           <div className="usuarios-field">

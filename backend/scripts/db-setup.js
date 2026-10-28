@@ -15,7 +15,6 @@ const path = require('path');
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 const { getClientConfig } = require('../src/config/dbConfig');
-const { calcularCuil } = require('../src/utils/identidad');
 
 const args = process.argv.slice(2);
 const shouldReset = args.includes('--reset');
@@ -23,8 +22,8 @@ const resetConfirmed = args.includes('--yes') || args.includes('-y');
 
 const DB_NAME = process.env.DB_NAME || 'turnify';
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'Turnify2026!';
-// Datos ficticios: el DNI es la base para calcular el CUIL. El usuario
-// profesional usa el mismo CUIL que su ficha en profesionales.
+// Datos ficticios. El CUIL se carga explicitamente: no se calcula desde el DNI.
+// El usuario profesional usa el mismo CUIL que su ficha en profesionales.
 const DEMO_USERS = [
   {
     email: 'admin@turnify.test',
@@ -32,7 +31,7 @@ const DEMO_USERS = [
     nombre: 'Ana',
     apellido: 'Gómez',
     nombre_usuario: 'ana.gomez',
-    dni: '30111222',
+    cuil: '20301112220',
   },
   {
     email: 'socio@turnify.test',
@@ -40,7 +39,7 @@ const DEMO_USERS = [
     nombre: 'Bruno',
     apellido: 'Fernández',
     nombre_usuario: 'bruno.fernandez',
-    dni: '28444555',
+    cuil: '20284445555',
   },
   {
     email: 'secretaria@turnify.test',
@@ -48,7 +47,7 @@ const DEMO_USERS = [
     nombre: 'Carla',
     apellido: 'López',
     nombre_usuario: 'carla.lopez',
-    dni: '32666777',
+    cuil: '20326667774',
   },
   {
     email: 'profesional@turnify.test',
@@ -56,7 +55,6 @@ const DEMO_USERS = [
     nombre: 'Juan',
     apellido: 'Puguita',
     nombre_usuario: 'juan.puguita',
-    dni: '34567890',
     cuil: '20345678901',
   },
 ];
@@ -147,13 +145,13 @@ async function createDemoUsers(client) {
       throw new Error(`No existe el rol "${user.rol}" en la tabla roles`);
     }
 
-    const cuil = user.cuil || calcularCuil(user.dni).replace(/-/g, '');
+    const cuil = user.cuil;
 
     const result = await client.query(
       `INSERT INTO usuarios
          (email, password_hash, rol_id, nombre, apellido,
-          nombre_usuario, dni, cuil)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          nombre_usuario, cuil)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (email) DO NOTHING
          RETURNING id`,
       [
@@ -163,7 +161,6 @@ async function createDemoUsers(client) {
         user.nombre,
         user.apellido,
         user.nombre_usuario,
-        user.dni,
         cuil,
       ]
     );
@@ -190,7 +187,7 @@ function printCredentials() {
   for (const user of DEMO_USERS) {
     log(
       `  ${user.rol.padEnd(12)} ${user.email.padEnd(30)} ` +
-        `usuario: ${user.nombre_usuario.padEnd(16)} DNI: ${user.dni}`
+        `usuario: ${user.nombre_usuario.padEnd(16)} CUIL: ${user.cuil}`
     );
   }
   log('  ---------------------------------------------------------------');

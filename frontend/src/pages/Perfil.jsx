@@ -142,25 +142,7 @@ export default function Perfil() {
 
           <Dato etiqueta="Email">{perfil.email}</Dato>
 
-          <Dato
-            etiqueta="DNI"
-            derivado={perfil.identidad_derivada}
-            titulo={
-              perfil.identidad_derivada ? "DNI/CUIL estimado para la demo" : undefined
-            }
-          >
-            {perfil.dni}
-          </Dato>
-
-          <Dato
-            etiqueta="CUIL"
-            derivado={perfil.identidad_derivada}
-            titulo={
-              perfil.identidad_derivada ? "DNI/CUIL estimado para la demo" : undefined
-            }
-          >
-            {perfil.cuil}
-          </Dato>
+          <Dato etiqueta="CUIL">{perfil.cuil}</Dato>
 
           <Dato etiqueta="Rol">
             <span className={`rol-badge rol-${perfil.rol_nombre}`}>

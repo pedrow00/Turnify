@@ -19,7 +19,7 @@ const login = async (req, res) => {
     if (!identificador || !password) {
       return res
         .status(400)
-        .json({ error: 'Usuario, email o DNI/CUIL y contraseña requeridos' });
+        .json({ error: 'Usuario, email o CUIL y contraseña requeridos' });
     }
 
     const usuario = await usuarioService.buscarPorIdentificador(identificador);
@@ -112,7 +112,6 @@ const crear = async (req, res) => {
       nombre,
       apellido,
       nombre_usuario,
-      dni,
       cuil,
     } = req.body;
 
@@ -130,7 +129,6 @@ const crear = async (req, res) => {
       nombre,
       apellido,
       nombre_usuario,
-      dni,
       cuil,
     });
     res.status(201).json(usuario);
@@ -147,14 +145,13 @@ const crear = async (req, res) => {
 
 const actualizarDatos = async (req, res) => {
   try {
-    const { email, nombre, apellido, nombre_usuario, dni, cuil } = req.body;
+    const { email, nombre, apellido, nombre_usuario, cuil } = req.body;
     const usuario = await usuarioService.actualizarDatos({
       id: req.params.id,
       email,
       nombre,
       apellido,
       nombre_usuario,
-      dni,
       cuil,
     });
     res.json(usuario);
